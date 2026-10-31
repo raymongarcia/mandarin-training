@@ -242,6 +242,11 @@ export default function Home() {
     }));
   };
 
+  const goToCourse = () => {
+    setActiveNav("My course");
+    document.getElementById("curriculum-list")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const navigation: { name: string; icon: IconName }[] = [
     { name: "Overview", icon: "grid" },
     { name: "My course", icon: "book" },
@@ -271,10 +276,12 @@ export default function Home() {
               className={`nav-item ${activeNav === item.name ? "selected" : ""}`}
               key={item.name}
               onClick={() => {
-                setActiveNav(item.name);
                 if (item.name === "My course") {
-                  document.getElementById("curriculum")?.scrollIntoView({ behavior: "smooth" });
-                } else if (item.name === "Practice") {
+                  goToCourse();
+                  return;
+                }
+                setActiveNav(item.name);
+                if (item.name === "Practice") {
                   setActiveLesson(true);
                 } else if (item.name === "My progress") {
                   document.getElementById("progress")?.scrollIntoView({ behavior: "smooth" });
@@ -398,9 +405,9 @@ export default function Home() {
               <section className="curriculum-section" id="curriculum">
                 <div className="section-heading">
                   <div><span className="eyebrow">YOUR LEARNING PATH</span><h2>From hello to let&apos;s work together.</h2></div>
-                  <button className="text-button" onClick={() => setActiveNav("My course")}>View course <Icon name="arrow" size={15} /></button>
+                  <button className="text-button" onClick={goToCourse}>View course <Icon name="arrow" size={15} /></button>
                 </div>
-                <div className="curriculum-list">
+                <div className="curriculum-list" id="curriculum-list">
                   {curriculum.map((unit) => (
                     <button
                       className={`unit-row ${unit.number === "01" ? "current-unit" : ""}`}
