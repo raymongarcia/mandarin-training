@@ -11,6 +11,8 @@ A practical Mandarin course for communicating with Chinese clients, suppliers, b
 
 Study-time recommendations are targets, not guaranteed fluency milestones. Build skills steadily and at your own pace.
 
+The first guided lesson includes five pronunciation and speaking activities. Audio uses an installed Mandarin voice when available; otherwise, short phrases are requested from Google Translate text-to-speech through the app's pronunciation endpoint.
+
 ## Run locally
 
 Requires Node.js 20.9 or later.

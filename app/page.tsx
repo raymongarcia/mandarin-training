@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import LessonPlayer from "./components/LessonPlayer";
 
 type IconName =
   | "grid"
@@ -82,13 +83,6 @@ const lessonGoals = [
   { title: "Meet your first tones", time: "20 min", done: false },
   { title: "Say hello & introduce yourself", time: "20 min", done: false },
   { title: "Practice & review aloud", time: "20 min", done: false },
-];
-
-const lessonVocabulary = [
-  { chinese: "你好", pinyin: "nǐ hǎo", meaning: "Hello" },
-  { chinese: "我叫…", pinyin: "wǒ jiào…", meaning: "My name is…" },
-  { chinese: "很高兴认识你", pinyin: "hěn gāoxìng rènshi nǐ", meaning: "Nice to meet you" },
-  { chinese: "我是…公司的", pinyin: "wǒ shì…gōngsī de", meaning: "I’m with … company" },
 ];
 
 export default function Home() {
@@ -215,7 +209,7 @@ export default function Home() {
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-course"><span>中</span></span>
-              <div><span className="stat-label">COURSE</span><strong>1 <small>of 6 units</small></strong></div>
+              <div><span className="stat-label">COURSE</span><strong>{completedGoals.length === 3 ? "1" : "0"} <small>of 6 units</small></strong></div>
               <span className="stat-note">Nice and steady</span>
             </article>
           </section>
@@ -223,7 +217,7 @@ export default function Home() {
           <section className="dashboard-grid">
             <div className="primary-column">
               <article className="today-card">
-                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR FRIDAY PLAN</span><span className="duration-pill">60 min study target</span></div>
+                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR FRIDAY PLAN</span><span className="duration-pill">60 min guided lesson</span></div>
                 <div className="today-main">
                   <div className="lesson-art">
                     <span className="art-sun" />
@@ -238,7 +232,7 @@ export default function Home() {
                     <p>Say hello, share your name, and make a warm first impression.</p>
                     <button className="primary-button" onClick={() => setActiveLesson(true)}>Start today&apos;s lesson <Icon name="arrow" size={17} /></button>
                   </div>
-                  <div className="lesson-meta"><span><Icon name="clock" size={15} /> 30 min</span><span><Icon name="chart" size={15} /> Beginner</span></div>
+                  <div className="lesson-meta"><span><Icon name="clock" size={15} /> 60 min</span><span><Icon name="chart" size={15} /> Beginner</span></div>
                 </div>
                 <div className="lesson-footer"><span>UP NEXT</span><span>Meeting someone new <Icon name="chevron" size={14} /></span></div>
               </article>
@@ -257,7 +251,7 @@ export default function Home() {
                     >
                       <span className={`unit-number ${unit.color}`}>{unit.number}</span>
                       <span className="unit-info"><strong>{unit.title}</strong><small>{unit.detail}</small></span>
-                      <span className="unit-progress"><span className="progress-track"><span style={{ width: `${unit.progress}%` }} /></span><small>{unit.progress ? "1 of 6" : unit.lessons}</small></span>
+                      <span className="unit-progress"><span className="progress-track"><span style={{ width: `${unit.number === "01" && completedGoals.length === 3 ? 17 : 0}%` }} /></span><small>{unit.number === "01" ? completedGoals.length === 3 ? "1 of 6" : "0 of 6" : unit.lessons}</small></span>
                       <span className="unit-arrow"><Icon name="chevron" size={18} /></span>
                     </button>
                   ))}
@@ -294,30 +288,20 @@ export default function Home() {
         </div>
       </section>
 
-      {activeLesson && (
-        <div className="lesson-overlay" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setActiveLesson(false);
-        }}>
-          <section className="lesson-dialog" role="dialog" aria-modal="true" aria-labelledby="lesson-title">
-            <div className="lesson-dialog-header"><span className="unit-kicker">UNIT 01 <span>·</span> LESSON 1</span><button className="icon-button" aria-label="Close lesson" onClick={() => setActiveLesson(false)}><Icon name="close" /></button></div>
-            <div className="lesson-dialog-content">
-              <div className="lesson-dialog-art"><span>你好</span><small>nǐ hǎo</small></div>
-              <span className="eyebrow">YOUR FIRST 30 MINUTES</span>
-              <h2 id="lesson-title">Your very first conversation</h2>
-              <p className="dialog-intro">Start with a friendly hello, then learn to introduce yourself to a new colleague or client.</p>
-              <div className="vocabulary-list">{lessonVocabulary.map((word) => <div className="vocabulary-row" key={word.chinese}><strong>{word.chinese}</strong><span>{word.pinyin}</span><small>{word.meaning}</small></div>)}</div>
-              <div className="lesson-reminder"><Icon name="clock" size={17} /><span>Take your time with each sound. Mandarin uses tones, and practice matters more than speed.</span></div>
-              <button className="primary-button lesson-complete-button" onClick={() => {
-                setCompletedGoals([0, 1, 2]);
-                setActiveLesson(false);
-                setNotice("Great work! Your first lesson is complete.");
-              }}>Mark lesson complete <Icon name="check" size={17} /></button>
-            </div>
-          </section>
-        </div>
-      )}
+      {activeLesson && <LessonPlayer
+        onClose={() => {
+          setActiveLesson(false);
+          window.speechSynthesis?.cancel();
+        }}
+        onComplete={() => {
+          setCompletedGoals([0, 1, 2]);
+          setActiveLesson(false);
+          window.speechSynthesis?.cancel();
+          setNotice("Excellent work. Your full 60-minute lesson is complete!");
+        }}
+      />}
 
-      {notice && <div className="toast" role="status"><span>{notice}</span><button aria-label="Dismiss message" onClick={() => setNotice("")}><Icon name="close" size={16} /></button></div>}
+      {notice && !activeLesson && <div className="toast" role="status"><span>{notice}</span><button aria-label="Dismiss message" onClick={() => setNotice("")}><Icon name="close" size={16} /></button></div>}
     </main>
   );
 }
