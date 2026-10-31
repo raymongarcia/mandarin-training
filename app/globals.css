@@ -62,6 +62,14 @@ button:focus-visible, a:focus-visible { outline: 3px solid #a8c7a8; outline-offs
 .icon-button { align-items: center; background: transparent; border: 0; color: #758077; cursor: pointer; display: inline-flex; height: 34px; justify-content: center; position: relative; width: 34px; }
 .icon-button:hover { color: var(--green); }
 .notification-button > span { background: #d78c66; border: 2px solid var(--paper); border-radius: 50%; height: 8px; position: absolute; right: 6px; top: 5px; width: 8px; }
+.sync-button { align-items: center; background: #fffefa; border: 1px solid #e8ebe3; border-radius: 20px; color: #60725d; cursor: pointer; display: flex; font-size: 9px; gap: 7px; min-height: 31px; padding: 0 10px; white-space: nowrap; }
+.sync-button:hover { border-color: #b6c7b1; color: #355f4b; }
+.sync-indicator { background: #93a58b; border-radius: 50%; flex: 0 0 6px; height: 6px; }
+.sync-saving .sync-indicator, .sync-loading .sync-indicator { animation: sync-pulse 1s ease-in-out infinite; }
+.sync-error { border-color: #e7d3c4; color: #966c4f; }
+.sync-error .sync-indicator { background: #c28a65; }
+.sync-unconfigured .sync-indicator { background: #c29a68; }
+@keyframes sync-pulse { 50% { opacity: .35; } }
 .page-content { margin: 0 auto; max-width: 1320px; padding: 38px 5.1% 25px; }
 .welcome-row { align-items: center; display: flex; justify-content: space-between; min-height: 190px; position: relative; }
 .eyebrow { color: #92968c; font-size: 9px; font-weight: 700; letter-spacing: 1.45px; }
@@ -346,6 +354,36 @@ h1 > span { color: var(--green); }
 .player-next > span { font-size: 13px; }
 .text-practice-button { background: transparent; border: 0; color: #547454; cursor: pointer; font-size: 9px; font-weight: 600; margin-top: 8px; padding: 4px 0; }
 .text-practice-button > span { padding-left: 5px; }
+.account-overlay { align-items: center; animation: fade-in .16s ease-out; background: rgba(36, 44, 37, .45); display: flex; inset: 0; justify-content: center; overflow-y: auto; padding: 20px; position: fixed; z-index: 30; }
+.account-dialog { animation: rise-in .2s ease-out; background: #fffefa; border: 1px solid #ecebe4; border-radius: 10px; box-shadow: 0 22px 80px rgba(38, 48, 39, .2); max-width: 430px; overflow: hidden; width: 100%; }
+.account-dialog-header { align-items: center; border-bottom: 1px solid #efeee8; display: flex; justify-content: space-between; padding: 12px 17px; }
+.account-dialog-header .brand-mark { height: 34px; width: 34px; }
+.account-dialog-header .icon-button { color: #7d857b; font-size: 22px; }
+.account-dialog-content { padding: 24px 24px 20px; }
+.account-dialog-content h2 { color: #354037; font-family: var(--serif); font-size: 29px; font-weight: 400; margin: 8px 0; }
+.account-intro { color: #81887f; font-size: 10px; line-height: 1.7; margin: 0 0 19px; }
+.signin-form { display: grid; gap: 8px; }
+.signin-form > label { color: #626c60; font-size: 9px; font-weight: 600; }
+.signin-form > input { background: #fff; border: 1px solid #e7e8e0; border-radius: 5px; color: #3e493f; font: inherit; font-size: 11px; min-height: 39px; outline: none; padding: 0 11px; }
+.signin-form > input:focus { border-color: #789274; box-shadow: 0 0 0 3px #edf2eb; }
+.signin-submit { margin-top: 5px; min-height: 39px; }
+.signin-submit:disabled, .signout-button:disabled { cursor: wait; opacity: .65; }
+.signin-submit > span { font-size: 15px; }
+.backend-setup { background: #f7f5ed; border-left: 2px solid #b5a47d; color: #666b5c; padding: 11px 12px; }
+.backend-setup > strong { color: #59614f; font-size: 9px; font-weight: 600; }
+.backend-setup p { color: #7d8277; font-size: 8px; line-height: 1.65; margin: 5px 0 0; overflow-wrap: anywhere; }
+.backend-setup code { background: #eeece1; border-radius: 2px; color: #53624e; font-size: 8px; padding: 1px 3px; }
+.account-message, .account-error { border-radius: 5px; font-size: 9px; line-height: 1.6; margin: 11px 0 0; padding: 9px 10px; }
+.account-message { background: #edf3ea; color: #557052; }
+.account-error { background: #f8f0e9; color: #8c6347; }
+.signed-in-card { align-items: center; background: #f2f4ee; border: 1px solid #e8ebe3; border-radius: 6px; display: flex; gap: 10px; padding: 11px; }
+.account-avatar { align-items: center; background: #e5ecdf; border-radius: 50%; color: #52714f; display: flex; flex: 0 0 31px; font-family: var(--serif); height: 31px; justify-content: center; width: 31px; }
+.signed-in-card > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.signed-in-card strong { color: #495547; font-size: 9px; overflow-wrap: anywhere; }
+.signed-in-card small { color: #7e887b; font-size: 8px; }
+.signout-button { background: transparent; border: 1px solid #e6e8df; border-radius: 4px; color: #747d71; cursor: pointer; font-size: 9px; margin-top: 10px; padding: 7px 10px; }
+.signout-button:hover { background: #f7f7f2; color: #445344; }
+.account-privacy { border-top: 1px solid #efeee8; color: #989c92; font-size: 8px; line-height: 1.6; margin: 18px 0 0; padding-top: 12px; }
 .toast { align-items: center; animation: rise-in .2s ease-out; background: #344f3c; border-radius: 7px; bottom: 24px; box-shadow: 0 8px 28px rgba(30, 45, 33, .18); color: white; display: flex; font-size: 11px; gap: 16px; justify-content: space-between; max-width: calc(100vw - 32px); padding: 12px 14px; position: fixed; right: 25px; z-index: 12; }
 .toast button { background: transparent; border: 0; color: #dce7dc; cursor: pointer; display: flex; padding: 2px; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -392,9 +430,11 @@ h1 > span { color: var(--green); }
 }
 @media (max-width: 540px) {
   .topbar { padding: 0 17px; }
-  .topbar-actions { gap: 6px; }
+  .topbar-actions { gap: 4px; }
   .standard-tag { font-size: 8px; gap: 5px; padding: 6px 8px; }
   .icon-button { height: 31px; width: 30px; }
+  .sync-button { font-size: 7px; gap: 4px; min-height: 28px; padding: 0 6px; }
+  .sync-indicator { flex-basis: 5px; height: 5px; }
   .page-content { padding: 25px 17px 22px; }
   .welcome-row { align-items: flex-start; min-height: 157px; }
   .welcome-row > div:first-child { max-width: 77%; }
@@ -489,4 +529,11 @@ h1 > span { color: var(--green); }
   .footer-lesson-progress small { display: none; }
   .player-back { font-size: 8px; padding: 8px 5px; }
   .player-next { font-size: 8px; gap: 6px; min-height: 36px; padding: 0 9px; }
+}
+@media (max-width: 390px) {
+  .topbar-actions { gap: 2px; }
+  .standard-tag { font-size: 7px; gap: 3px; padding: 5px 5px; }
+  .sync-button { font-size: 0; gap: 0; min-height: 28px; padding: 0 9px; }
+  .sync-indicator { flex-basis: 7px; height: 7px; }
+  .account-dialog-content { padding: 21px 17px 17px; }
 }

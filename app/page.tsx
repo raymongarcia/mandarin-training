@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import LessonPlayer from "./components/LessonPlayer";
+import AccountDialog from "./components/AccountDialog";
+import { useLearningProgress } from "./lib/useLearningProgress";
 
 type IconName =
   | "grid"
@@ -86,17 +88,40 @@ const lessonGoals = [
 ];
 
 export default function Home() {
+  const {
+    client,
+    user,
+    progress,
+    updateProgress,
+    syncStatus,
+    syncError,
+    signInWithEmail,
+    signOut,
+  } = useLearningProgress();
   const [activeNav, setActiveNav] = useState("Overview");
   const [activeLesson, setActiveLesson] = useState(false);
-  const [completedGoals, setCompletedGoals] = useState<number[]>([]);
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [notice, setNotice] = useState("");
 
+  const completedGoals = progress.completedGoals;
+  const learnedPhrases = new Set(
+    (progress.lesson?.playedAudio ?? []).filter((id) => id.startsWith("word-")),
+  ).size;
+  const phraseCount = progress.completedLessons.includes("unit-01-lesson-01")
+    ? 4
+    : learnedPhrases;
+
+  const saveLessonProgress = useCallback((lesson: NonNullable<typeof progress.lesson>) => {
+    updateProgress((current) => ({ ...current, lesson }));
+  }, [updateProgress]);
+
   const toggleGoal = (index: number) => {
-    setCompletedGoals((current) =>
-      current.includes(index)
-        ? current.filter((goal) => goal !== index)
-        : [...current, index],
-    );
+    updateProgress((current) => ({
+      ...current,
+      completedGoals: current.completedGoals.includes(index)
+        ? current.completedGoals.filter((goal) => goal !== index)
+        : [...current.completedGoals, index],
+    }));
   };
 
   const navigation: { name: string; icon: IconName }[] = [
@@ -156,9 +181,9 @@ export default function Home() {
         <button className="nav-item settings-link" onClick={() => setNotice("Settings are coming soon.")}>
           <Icon name="settings" size={19} /><span>Settings</span>
         </button>
-        <button className="profile" onClick={() => setNotice("Your learner profile")}>
-          <span className="avatar">R</span>
-          <span className="profile-copy"><strong>Raymond Pogi</strong><small>Beginner · Week 1</small></span>
+        <button className="profile" onClick={() => setAccountDialogOpen(true)}>
+          <span className="avatar">{user?.email?.slice(0, 1).toUpperCase() ?? "R"}</span>
+          <span className="profile-copy"><strong>{user?.email ?? "Raymond Pogi"}</strong><small>{user ? syncStatus === "saved" ? "Progress synced" : syncStatus === "saving" ? "Saving progress…" : "Learner account" : "Sign in to sync progress"}</small></span>
           <Icon name="chevron" size={16} />
         </button>
       </aside>
@@ -170,6 +195,15 @@ export default function Home() {
             <span className="standard-tag"><span className="status-dot" /> Standard Mandarin <span className="tag-divider">·</span> 简体中文</span>
             <button className="icon-button" aria-label="Search" onClick={() => setNotice("Search your course lessons and phrases.")}><Icon name="search" /></button>
             <button className="icon-button notification-button" aria-label="Notifications" onClick={() => setNotice("You're all caught up.")}><Icon name="bell" /><span /></button>
+            <button
+              className={`sync-button sync-${syncStatus}`}
+              onClick={() => setAccountDialogOpen(true)}
+              aria-label={user ? `Account progress sync: ${syncStatus}` : client ? "Sign in to save progress" : "Configure account sync"}
+              title={syncError || undefined}
+            >
+              <span className="sync-indicator" />
+              <span>{user ? syncStatus === "saved" ? "Progress saved" : syncStatus === "saving" || syncStatus === "loading" ? "Syncing…" : syncStatus === "error" ? "Sync issue" : "Account synced" : client ? "Sign in to save" : "Connect to save"}</span>
+            </button>
           </div>
         </header>
 
@@ -204,12 +238,12 @@ export default function Home() {
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-learn"><Icon name="book" size={18} /></span>
-              <div><span className="stat-label">WORDS LEARNED</span><strong>12 <small>words</small></strong></div>
-              <span className="stat-note">你好 is one of them!</span>
+              <div><span className="stat-label">PHRASES PRACTICED</span><strong>{phraseCount} <small>of 4</small></strong></div>
+              <span className="stat-note">One phrase at a time</span>
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-course"><span>中</span></span>
-              <div><span className="stat-label">COURSE</span><strong>{completedGoals.length === 3 ? "1" : "0"} <small>of 6 units</small></strong></div>
+              <div><span className="stat-label">COURSE</span><strong>{progress.completedLessons.length} <small>of 6 units</small></strong></div>
               <span className="stat-note">Nice and steady</span>
             </article>
           </section>
@@ -230,7 +264,13 @@ export default function Home() {
                     <span className="unit-kicker">UNIT 01 <span>·</span> LESSON 1</span>
                     <h2>Your very first<br />conversation</h2>
                     <p>Say hello, share your name, and make a warm first impression.</p>
-                    <button className="primary-button" onClick={() => setActiveLesson(true)}>Start today&apos;s lesson <Icon name="arrow" size={17} /></button>
+                    <button className="primary-button" onClick={() => {
+                      if (syncStatus === "loading") {
+                        setNotice("Checking your saved progress. Please try again in a moment.");
+                        return;
+                      }
+                      setActiveLesson(true);
+                    }}>Start today&apos;s lesson <Icon name="arrow" size={17} /></button>
                   </div>
                   <div className="lesson-meta"><span><Icon name="clock" size={15} /> 60 min</span><span><Icon name="chart" size={15} /> Beginner</span></div>
                 </div>
@@ -251,7 +291,7 @@ export default function Home() {
                     >
                       <span className={`unit-number ${unit.color}`}>{unit.number}</span>
                       <span className="unit-info"><strong>{unit.title}</strong><small>{unit.detail}</small></span>
-                      <span className="unit-progress"><span className="progress-track"><span style={{ width: `${unit.number === "01" && completedGoals.length === 3 ? 17 : 0}%` }} /></span><small>{unit.number === "01" ? completedGoals.length === 3 ? "1 of 6" : "0 of 6" : unit.lessons}</small></span>
+                      <span className="unit-progress"><span className="progress-track"><span style={{ width: `${unit.number === "01" && progress.completedLessons.includes("unit-01-lesson-01") ? 17 : 0}%` }} /></span><small>{unit.number === "01" ? progress.completedLessons.includes("unit-01-lesson-01") ? "1 of 6" : "0 of 6" : unit.lessons}</small></span>
                       <span className="unit-arrow"><Icon name="chevron" size={18} /></span>
                     </button>
                   ))}
@@ -289,16 +329,35 @@ export default function Home() {
       </section>
 
       {activeLesson && <LessonPlayer
+        initialProgress={progress.lesson}
+        onProgressChange={saveLessonProgress}
         onClose={() => {
           setActiveLesson(false);
           window.speechSynthesis?.cancel();
         }}
         onComplete={() => {
-          setCompletedGoals([0, 1, 2]);
+          updateProgress((current) => ({
+            ...current,
+            completedGoals: [0, 1, 2],
+            completedLessons: current.completedLessons.includes("unit-01-lesson-01")
+              ? current.completedLessons
+              : [...current.completedLessons, "unit-01-lesson-01"],
+            lesson: null,
+          }));
           setActiveLesson(false);
           window.speechSynthesis?.cancel();
           setNotice("Excellent work. Your full 60-minute lesson is complete!");
         }}
+      />}
+
+      {accountDialogOpen && <AccountDialog
+        client={client}
+        user={user}
+        syncStatus={syncStatus}
+        syncError={syncError}
+        onClose={() => setAccountDialogOpen(false)}
+        onSignIn={signInWithEmail}
+        onSignOut={signOut}
       />}
 
       {notice && !activeLesson && <div className="toast" role="status"><span>{notice}</span><button aria-label="Dismiss message" onClick={() => setNotice("")}><Icon name="close" size={16} /></button></div>}

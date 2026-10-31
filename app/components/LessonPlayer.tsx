@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { LessonProgress } from "../lib/useLearningProgress";
 
 const lessonSections = [
   { title: "Hear the tones", duration: "10 min", icon: "01" },
@@ -64,19 +65,33 @@ function SpeakerIcon({ speaking = false }: { speaking?: boolean }) {
 function LessonPlayer({
   onClose,
   onComplete,
+  initialProgress,
+  onProgressChange,
 }: {
   onClose: () => void;
   onComplete: () => void;
+  initialProgress: LessonProgress | null;
+  onProgressChange: (progress: LessonProgress) => void;
 }) {
-  const [activeSection, setActiveSection] = useState(0);
-  const [playedAudio, setPlayedAudio] = useState<string[]>([]);
+  const [activeSection, setActiveSection] = useState(initialProgress?.sectionIndex ?? 0);
+  const [playedAudio, setPlayedAudio] = useState<string[]>(initialProgress?.playedAudio ?? []);
   const [playingAudio, setPlayingAudio] = useState("");
   const [audioNotice, setAudioNotice] = useState("");
   const [audioFailed, setAudioFailed] = useState(false);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [practiceChecks, setPracticeChecks] = useState<number[]>([]);
-  const [textPracticeSections, setTextPracticeSections] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<(number | undefined)[]>(initialProgress?.answers.map((answer) => answer ?? undefined) ?? []);
+  const [practiceChecks, setPracticeChecks] = useState<number[]>(initialProgress?.practiceChecks ?? []);
+  const [textPracticeSections, setTextPracticeSections] = useState<number[]>(initialProgress?.textPracticeSections ?? []);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    onProgressChange({
+      sectionIndex: activeSection,
+      playedAudio,
+      answers: answers.map((answer) => answer ?? null),
+      practiceChecks,
+      textPracticeSections,
+    });
+  }, [activeSection, answers, onProgressChange, playedAudio, practiceChecks, textPracticeSections]);
 
   const markAudioPlayed = (id: string) => {
     setPlayedAudio((current) => current.includes(id) ? current : [...current, id]);
