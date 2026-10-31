@@ -27,9 +27,32 @@ export interface Database {
         };
         Relationships: [];
       };
+      learning_activity: {
+        Row: {
+          user_id: string;
+          activity_date: string;
+          active_seconds: number;
+        };
+        Insert: {
+          user_id: string;
+          activity_date?: string;
+          active_seconds: number;
+        };
+        Update: {
+          user_id?: string;
+          activity_date?: string;
+          active_seconds?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      record_learning_activity: {
+        Args: { p_seconds: number };
+        Returns: undefined;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

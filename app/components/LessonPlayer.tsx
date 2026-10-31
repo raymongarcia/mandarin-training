@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LessonProgress } from "../lib/useLearningProgress";
 
 const lessonSections = [
@@ -154,11 +154,13 @@ function LessonPlayer({
   onComplete,
   initialProgress,
   onProgressChange,
+  onStudySeconds,
 }: {
   onClose: () => void;
   onComplete: () => void;
   initialProgress: LessonProgress | null;
   onProgressChange: (progress: LessonProgress) => void;
+  onStudySeconds: (seconds: number) => void;
 }) {
   const [activeSection, setActiveSection] = useState(initialProgress?.sectionIndex ?? 0);
   const [playedAudio, setPlayedAudio] = useState<string[]>(initialProgress?.playedAudio ?? []);
@@ -169,6 +171,23 @@ function LessonPlayer({
   const [practiceChecks, setPracticeChecks] = useState<number[]>(initialProgress?.practiceChecks ?? []);
   const [textPracticeSections, setTextPracticeSections] = useState<number[]>(initialProgress?.textPracticeSections ?? []);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastStudyReport = useRef(Date.now());
+
+  const reportStudyTime = useCallback((includeHiddenElapsed = false) => {
+    const now = Date.now();
+    if (!includeHiddenElapsed && document.visibilityState === "hidden") {
+      lastStudyReport.current = now;
+      return;
+    }
+    let seconds = Math.floor((now - lastStudyReport.current) / 1000);
+    if (seconds < 1) return;
+    lastStudyReport.current = now;
+    while (seconds > 0) {
+      const batch = Math.min(seconds, 120);
+      onStudySeconds(batch);
+      seconds -= batch;
+    }
+  }, [onStudySeconds]);
 
   useEffect(() => {
     onProgressChange({
@@ -179,6 +198,22 @@ function LessonPlayer({
       textPracticeSections,
     });
   }, [activeSection, answers, onProgressChange, playedAudio, practiceChecks, textPracticeSections]);
+
+  useEffect(() => {
+    const timer = window.setInterval(reportStudyTime, 60_000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        reportStudyTime(true);
+      } else {
+        lastStudyReport.current = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [reportStudyTime]);
 
   const markAudioPlayed = (id: string) => {
     setPlayedAudio((current) => current.includes(id) ? current : [...current, id]);
@@ -262,6 +297,7 @@ function LessonPlayer({
   const handleContinue = () => {
     if (!sectionReady) return;
     if (activeSection === lessonSections.length - 1) {
+      reportStudyTime();
       stopAudio();
       onComplete();
       return;
@@ -283,6 +319,7 @@ function LessonPlayer({
             <strong>Your first Mandarin sounds</strong>
           </div>
           <button className="player-close" onClick={() => {
+            reportStudyTime();
             stopAudio();
             onClose();
           }} aria-label="Exit lesson">Exit lesson <span>×</span></button>

@@ -15,9 +15,11 @@ The first guided lesson starts with Hanyu Pinyin initials and vowels, then intro
 
 ## Enable progress sync
 
-Progress is private to each signed-in learner. Supabase sends a one-time email sign-in link; progress is saved to a row protected by Supabase Row Level Security.
+Progress and study activity are private to each signed-in learner. Supabase sends a one-time email sign-in link; progress is saved to rows protected by Supabase Row Level Security. The dashboard API calculates study time, daily streaks, completed lessons, practiced phrases, and weekly activity from those records. Time is tracked while the guided lesson is open.
 
-1. Create a Supabase project and run [`supabase/migrations/20261031000000_create_learning_progress.sql`](./supabase/migrations/20261031000000_create_learning_progress.sql) in its SQL Editor.
+The authenticated `GET /api/dashboard` endpoint returns current learner metrics. `POST /api/dashboard` accepts `{ "seconds": 60 }` to record active study time; both requests require the learner's Supabase access token.
+
+1. Create a Supabase project and run both SQL files in [`supabase/migrations`](./supabase/migrations) in timestamp order in its SQL Editor.
 2. Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from your Supabase project's API settings.
 3. Add those same two variables to the Vercel project's Production and Preview environments, then redeploy.
 4. In Supabase Authentication URL Configuration, set `https://mandarin-training.vercel.app` as the Site URL and allow the deployed site's callback URL. Add your local development URL (for example `http://localhost:3000`) while testing locally.

@@ -169,8 +169,10 @@ h1 > span { color: var(--green); }
 .week-summary strong span { color: #687267; font-family: var(--sans); font-size: 10px; }
 .week-summary > span { color: #969b92; font-size: 9px; }
 .week-progress { background: #eeefe8; border-radius: 5px; height: 5px; margin-top: 10px; overflow: hidden; }
-.week-progress > span { background: #719275; border-radius: inherit; display: block; height: 100%; width: 16%; }
+.week-progress > span { background: #719275; border-radius: inherit; display: block; height: 100%; transition: width .2s ease; }
 .week-days { display: flex; justify-content: space-between; margin-top: 15px; }
+.week-empty { color: #858b81; font-size: 8px; line-height: 1.5; margin: 14px 0 0; min-height: 34px; }
+.dashboard-error { color: #8c6347; font-size: 8px; line-height: 1.5; margin: 8px 0 0; }
 .day-column { align-items: center; display: flex; flex-direction: column; gap: 7px; }
 .day-label { color: #a0a49c; font-size: 9px; }
 .day-date { align-items: center; border: 1px solid transparent; border-radius: 50%; color: #737d73; display: flex; font-size: 9px; height: 25px; justify-content: center; width: 25px; }

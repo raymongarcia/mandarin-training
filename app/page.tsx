@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import LessonPlayer from "./components/LessonPlayer";
 import AccountDialog from "./components/AccountDialog";
 import { useLearningProgress } from "./lib/useLearningProgress";
@@ -71,15 +71,46 @@ const curriculum = [
   { number: "06", title: "Put it into practice", detail: "Real-world conversations & review", lessons: "6 lessons", color: "peach", progress: 0 },
 ];
 
-const weekDays = [
-  { label: "M", date: "26", done: false },
-  { label: "T", date: "27", done: false },
-  { label: "W", date: "28", done: true },
-  { label: "T", date: "29", done: true },
-  { label: "F", date: "30", done: false, today: true },
-  { label: "S", date: "31", done: false },
-  { label: "S", date: "1", done: false },
-];
+type DashboardSummary = {
+  displayName: string;
+  weeklyStudySeconds: number;
+  currentStreakDays: number;
+  phrasesPracticed: number;
+  completedLessons: number;
+  completedGoals: number;
+  weekDays: { date: string; label: string; day: number; studySeconds: number; today: boolean }[];
+};
+
+function isDashboardDay(value: unknown): value is DashboardSummary["weekDays"][number] {
+  if (!value || typeof value !== "object") return false;
+  const day = value as Record<string, unknown>;
+  return typeof day.date === "string"
+    && typeof day.label === "string"
+    && typeof day.day === "number"
+    && typeof day.studySeconds === "number"
+    && typeof day.today === "boolean";
+}
+
+function isDashboardSummary(value: unknown): value is DashboardSummary {
+  if (!value || typeof value !== "object") return false;
+  const summary = value as Record<string, unknown>;
+  return typeof summary.displayName === "string"
+    && typeof summary.weeklyStudySeconds === "number" && Number.isFinite(summary.weeklyStudySeconds) && summary.weeklyStudySeconds >= 0
+    && typeof summary.currentStreakDays === "number" && Number.isInteger(summary.currentStreakDays) && summary.currentStreakDays >= 0
+    && typeof summary.phrasesPracticed === "number" && Number.isInteger(summary.phrasesPracticed) && summary.phrasesPracticed >= 0
+    && typeof summary.completedLessons === "number" && Number.isInteger(summary.completedLessons) && summary.completedLessons >= 0
+    && typeof summary.completedGoals === "number" && Number.isInteger(summary.completedGoals) && summary.completedGoals >= 0
+    && Array.isArray(summary.weekDays)
+    && summary.weekDays.length === 7
+    && summary.weekDays.every(isDashboardDay);
+}
+
+function getApiError(value: unknown, fallback: string) {
+  if (value && typeof value === "object" && "error" in value && typeof value.error === "string") {
+    return value.error;
+  }
+  return fallback;
+}
 
 const lessonGoals = [
   { title: "Meet your first tones", time: "20 min", done: false },
@@ -102,14 +133,101 @@ export default function Home() {
   const [activeLesson, setActiveLesson] = useState(false);
   const [accountDialogOpen, setAccountDialogOpen] = useState(false);
   const [notice, setNotice] = useState("");
-
+  const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
+  const [dashboardError, setDashboardError] = useState("");
+  const [todayLabel, setTodayLabel] = useState("");
+  const activityQueue = useRef(Promise.resolve());
   const completedGoals = progress.completedGoals;
-  const learnedPhrases = new Set(
-    (progress.lesson?.playedAudio ?? []).filter((id) => id.startsWith("word-")),
-  ).size;
-  const phraseCount = progress.completedLessons.includes("unit-01-lesson-01")
-    ? 4
-    : learnedPhrases;
+
+  const fetchDashboard = useCallback(async () => {
+    if (!client || !user) return;
+    const { data, error } = await client.auth.getSession();
+    if (error) {
+      console.error("Could not read the session for dashboard sync.", error);
+      setDashboardError("Could not verify your account. Sign in again to load your dashboard.");
+      return;
+    }
+    if (!data.session) return;
+
+    try {
+      const response = await fetch("/api/dashboard", {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+        cache: "no-store",
+      });
+      const result: unknown = await response.json();
+      if (!response.ok) {
+        setDashboardError(getApiError(result, "Could not load your dashboard."));
+        return;
+      }
+      if (!isDashboardSummary(result)) {
+        console.error("The dashboard API returned an unexpected response.", result);
+        setDashboardError("The dashboard service returned unexpected data.");
+        return;
+      }
+      setDashboard(result);
+      setDashboardError("");
+    } catch (error) {
+      console.error("Could not reach the dashboard API.", error);
+      setDashboardError("Could not reach the dashboard service. Check your connection and try again.");
+    }
+  }, [client, user]);
+
+  useEffect(() => {
+    setTodayLabel(new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric" }).format(new Date()));
+  }, []);
+
+  useEffect(() => {
+    if (!client || !user) {
+      setDashboard(null);
+      setDashboardError("");
+      return;
+    }
+    if (syncStatus !== "ready" && syncStatus !== "saved") return;
+    void fetchDashboard();
+  }, [client, fetchDashboard, syncStatus, user]);
+
+  const recordStudySeconds = useCallback((seconds: number) => {
+    activityQueue.current = activityQueue.current.then(async () => {
+      if (!client || !user) {
+        setDashboardError("Sign in to save study time to your dashboard.");
+        return;
+      }
+      const { data, error } = await client.auth.getSession();
+      if (error || !data.session) {
+        console.error("Could not read the session while saving study activity.", error);
+        setDashboardError("Could not verify your account. Sign in again to save study time.");
+        return;
+      }
+      try {
+        const response = await fetch("/api/dashboard", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${data.session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ seconds }),
+        });
+        const result: unknown = await response.json();
+        if (!response.ok) {
+          setDashboardError(getApiError(result, "Could not save your study time."));
+          return;
+        }
+        if (!isDashboardSummary(result)) {
+          console.error("The dashboard API returned an unexpected activity response.", result);
+          setDashboardError("The dashboard service returned unexpected data.");
+          return;
+        }
+        setDashboard(result);
+        setDashboardError("");
+      } catch (error) {
+        console.error("Could not save dashboard study activity.", error);
+        setDashboardError("Could not reach the dashboard service. Your study time was not synced.");
+      }
+    }).catch((error: unknown) => {
+      console.error("The dashboard activity queue failed.", error);
+      setDashboardError("Your study time could not be synced. Check your connection.");
+    });
+  }, [client, user]);
 
   const saveLessonProgress = useCallback((lesson: NonNullable<typeof progress.lesson>) => {
     updateProgress((current) => ({ ...current, lesson }));
@@ -182,8 +300,8 @@ export default function Home() {
           <Icon name="settings" size={19} /><span>Settings</span>
         </button>
         <button className="profile" onClick={() => setAccountDialogOpen(true)}>
-          <span className="avatar">{user?.email?.slice(0, 1).toUpperCase() ?? "R"}</span>
-          <span className="profile-copy"><strong>{user?.email ?? "Raymond Pogi"}</strong><small>{user ? syncStatus === "saved" ? "Progress synced" : syncStatus === "saving" ? "Saving progress…" : "Learner account" : "Sign in to sync progress"}</small></span>
+          <span className="avatar">{(dashboard?.displayName ?? user?.email?.slice(0, 1) ?? "L").slice(0, 1).toUpperCase()}</span>
+          <span className="profile-copy"><strong>{dashboard?.displayName ?? user?.email ?? "Learner"}</strong><small>{user ? syncStatus === "saved" ? "Progress synced" : syncStatus === "saving" ? "Saving progress…" : "Learner account" : "Sign in to sync progress"}</small></span>
           <Icon name="chevron" size={16} />
         </button>
       </aside>
@@ -210,7 +328,7 @@ export default function Home() {
         <div className="page-content">
           <section className="welcome-row">
             <div>
-              <div className="eyebrow"><span className="eyebrow-line" /> FRIDAY, OCTOBER 30</div>
+              <div className="eyebrow"><span className="eyebrow-line" /> {todayLabel || "YOUR LEARNING DASHBOARD"}</div>
               <h1>A little Mandarin,<br /><span>goes a long way.</span></h1>
               <p className="welcome-copy">Build real-world confidence for the conversations that matter at work.</p>
             </div>
@@ -228,30 +346,30 @@ export default function Home() {
           <section className="stats-row" id="progress" aria-label="Your learning at a glance">
             <article className="stat-card">
               <span className="stat-icon stat-time"><Icon name="clock" size={18} /></span>
-              <div><span className="stat-label">THIS WEEK</span><strong>1.5 <small>/ 7–10 hrs</small></strong></div>
-              <span className="stat-note">A lovely start</span>
+              <div><span className="stat-label">THIS WEEK</span><strong>{dashboard ? (dashboard.weeklyStudySeconds / 3600).toFixed(1) : "—"} <small>/ 7–10 hrs</small></strong></div>
+              <span className="stat-note">{dashboard ? dashboard.weeklyStudySeconds ? "Time well spent" : "Ready when you are" : "Sign in to track time"}</span>
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-fire">✳</span>
-              <div><span className="stat-label">DAY STREAK</span><strong>3 <small>days</small></strong></div>
-              <span className="stat-note">Keep it going</span>
+              <div><span className="stat-label">DAY STREAK</span><strong>{dashboard ? dashboard.currentStreakDays : "—"} <small>days</small></strong></div>
+              <span className="stat-note">{dashboard ? dashboard.currentStreakDays ? "Keep it going" : "Study today to start" : "Sign in to track activity"}</span>
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-learn"><Icon name="book" size={18} /></span>
-              <div><span className="stat-label">PHRASES PRACTICED</span><strong>{phraseCount} <small>of 4</small></strong></div>
+              <div><span className="stat-label">PHRASES PRACTICED</span><strong>{dashboard?.phrasesPracticed ?? "—"} <small>of 4</small></strong></div>
               <span className="stat-note">One phrase at a time</span>
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-course"><span>中</span></span>
-              <div><span className="stat-label">COURSE</span><strong>{progress.completedLessons.length} <small>of 6 units</small></strong></div>
-              <span className="stat-note">Nice and steady</span>
+              <div><span className="stat-label">LESSONS COMPLETED</span><strong>{dashboard?.completedLessons ?? "—"} <small>of 46</small></strong></div>
+              <span className="stat-note">At your own pace</span>
             </article>
           </section>
 
           <section className="dashboard-grid">
             <div className="primary-column">
               <article className="today-card">
-                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR FRIDAY PLAN</span><span className="duration-pill">60 min guided lesson</span></div>
+                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR STUDY PLAN</span><span className="duration-pill">60 min guided lesson</span></div>
                 <div className="today-main">
                   <div className="lesson-art">
                     <span className="art-sun" />
@@ -303,20 +421,23 @@ export default function Home() {
             <aside className="right-column">
               <section className="week-card">
                 <div className="card-heading"><div><span className="eyebrow">YOUR RHYTHM</span><h3>This week</h3></div><button className="more-button" aria-label="More weekly options" onClick={() => setNotice("Your study target is 1–2 hours a day, aiming for 7–10 hours across the week.")}>···</button></div>
-                <div className="week-summary"><strong>1.5 <span>hours</span></strong><span>of your 7–10 hour target</span></div>
-                <div className="week-progress"><span /></div>
-                <div className="week-days">{weekDays.map((day, index) => <div className={`day-column ${day.today ? "is-today" : ""}`} key={`${day.label}-${day.date}`}><span className="day-label">{day.label}</span><span className={`day-date ${day.done ? "is-done" : ""}`}>{day.done ? <Icon name="check" size={14} /> : day.date}</span></div>)}</div>
+                <div className="week-summary"><strong>{dashboard ? (dashboard.weeklyStudySeconds / 3600).toFixed(1) : "—"} <span>hours</span></strong><span>of your 7–10 hour target</span></div>
+                <div className="week-progress"><span style={{ width: `${dashboard ? Math.min((dashboard.weeklyStudySeconds / (7 * 3600)) * 100, 100) : 0}%` }} /></div>
+                {dashboard ? (
+                  <div className="week-days">{dashboard.weekDays.map((day) => <div className={`day-column ${day.today ? "is-today" : ""}`} key={day.date} title={`${day.studySeconds ? Math.round(day.studySeconds / 60) : 0} minutes studied`}><span className="day-label">{day.label}</span><span className={`day-date ${day.studySeconds > 0 ? "is-done" : ""}`}>{day.studySeconds > 0 ? <Icon name="check" size={14} /> : day.day}</span></div>)}</div>
+                ) : <p className="week-empty">{dashboardError || (user ? "Loading your study activity…" : "Sign in to track your study activity.")}</p>}
                 <div className="week-footnote"><span className="footnote-spark">✳</span><p><strong>Progress, not perfection.</strong><br />Aim for 1–2 hours a day, at your pace.</p></div>
+                {dashboardError && dashboard && <p className="dashboard-error" role="alert">{dashboardError}</p>}
               </section>
 
               <section className="goals-card">
-                <div className="card-heading"><div><span className="eyebrow">SMALL STEPS, BIG PROGRESS</span><h3>Today&apos;s goals</h3></div><span className="goal-count">{completedGoals.length}/3</span></div>
+                <div className="card-heading"><div><span className="eyebrow">SMALL STEPS, BIG PROGRESS</span><h3>Today&apos;s goals</h3></div><span className="goal-count">{dashboard ? dashboard.completedGoals : "—"}/3</span></div>
                 <div className="goal-list">{lessonGoals.map((goal, index) => <button className={`goal-item ${completedGoals.includes(index) ? "goal-complete" : ""}`} key={goal.title} onClick={() => toggleGoal(index)}><span className="goal-check"><Icon name="check" size={13} /></span><span className="goal-copy"><strong>{goal.title}</strong><small>{goal.time}</small></span><Icon name="chevron" size={16} /></button>)}</div>
                 <div className="goal-footer"><span className="goal-avatar">你</span><span>You&apos;re building a great habit.</span><span className="goal-spark">✳</span></div>
               </section>
 
               <section className="phrase-card">
-                <div className="phrase-label"><span>PHRASE TO TAKE WITH YOU</span><span>01 / 12</span></div>
+                <div className="phrase-label"><span>PHRASE TO TAKE WITH YOU</span><span>{dashboard?.phrasesPracticed ?? "—"} / 4 PRACTICED</span></div>
                 <p className="phrase-hanzi">你好</p>
                 <p className="phrase-pinyin">nǐ hǎo</p>
                 <div className="phrase-bottom"><span>hello · a friendly greeting</span><button aria-label="Save phrase" onClick={() => setNotice("Saved 你好 to your phrases.")}><Icon name="bookmark" size={17} /></button></div>
@@ -331,6 +452,7 @@ export default function Home() {
       {activeLesson && <LessonPlayer
         initialProgress={progress.lesson}
         onProgressChange={saveLessonProgress}
+        onStudySeconds={recordStudySeconds}
         onClose={() => {
           setActiveLesson(false);
           window.speechSynthesis?.cancel();
@@ -346,7 +468,7 @@ export default function Home() {
           }));
           setActiveLesson(false);
           window.speechSynthesis?.cancel();
-          setNotice("Excellent work. Your full 60-minute lesson is complete!");
+          setNotice("Excellent work. Your lesson progress has been saved.");
         }}
       />}
 
