@@ -262,8 +262,8 @@ export default function Home() {
                   </div>
                   <div className="today-details">
                     <span className="unit-kicker">UNIT 01 <span>·</span> LESSON 1</span>
-                    <h2>Your very first<br />conversation</h2>
-                    <p>Say hello, share your name, and make a warm first impression.</p>
+                    <h2>Your first Mandarin<br />sounds</h2>
+                    <p>Start with Pinyin pronunciation, then practice greeting and introducing yourself to a new client.</p>
                     <button className="primary-button" onClick={() => {
                       if (syncStatus === "loading") {
                         setNotice("Checking your saved progress. Please try again in a moment.");

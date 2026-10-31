@@ -4,11 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import type { LessonProgress } from "../lib/useLearningProgress";
 
 const lessonSections = [
-  { title: "Hear the tones", duration: "10 min", icon: "01" },
-  { title: "Build your first words", duration: "15 min", icon: "02" },
-  { title: "Introduce yourself", duration: "15 min", icon: "03" },
-  { title: "Check your understanding", duration: "10 min", icon: "04" },
-  { title: "Speak with confidence", duration: "10 min", icon: "05" },
+  { title: "Pinyin sounds & tones", duration: "20 min", icon: "01" },
+  { title: "Build your first words", duration: "12 min", icon: "02" },
+  { title: "Introduce yourself", duration: "12 min", icon: "03" },
+  { title: "Check your understanding", duration: "8 min", icon: "04" },
+  { title: "Speak with confidence", duration: "8 min", icon: "05" },
+];
+
+const pinyinGroups = [
+  { id: "pinyin-bpmf", category: "INITIALS", letters: [{ symbol: "b", sound: "p without a puff" }, { symbol: "p", sound: "p with a puff" }, { symbol: "m", sound: "m in me" }, { symbol: "f", sound: "f in fun" }], example: "bā · pā · mā · fā", audio: "bā pā mā fā" },
+  { id: "pinyin-dtnl", category: "INITIALS", letters: [{ symbol: "d", sound: "t without a puff" }, { symbol: "t", sound: "t with a puff" }, { symbol: "n", sound: "n in no" }, { symbol: "l", sound: "l in let" }], example: "dā · tā · nā · lā", audio: "dā tā nā lā" },
+  { id: "pinyin-gkh", category: "INITIALS", letters: [{ symbol: "g", sound: "k without a puff" }, { symbol: "k", sound: "k with a puff" }, { symbol: "h", sound: "h, from the throat" }], example: "gā · kā · hā", audio: "gā kā hā" },
+  { id: "pinyin-jqx", category: "INITIALS", letters: [{ symbol: "j", sound: "j in jeep; tongue forward" }, { symbol: "q", sound: "ch in cheese; tongue forward" }, { symbol: "x", sound: "soft sh; tongue forward" }], example: "jī · qī · xī", audio: "jī qī xī" },
+  { id: "pinyin-zcsr", category: "INITIALS", letters: [{ symbol: "zh", sound: "j, tongue curled back" }, { symbol: "ch", sound: "ch, tongue curled back" }, { symbol: "sh", sound: "sh, tongue curled back" }, { symbol: "r", sound: "r, tongue curled back" }], example: "zhī · chī · shī · rì", audio: "zhī chī shī rì" },
+  { id: "pinyin-zcs", category: "INITIALS", letters: [{ symbol: "z", sound: "ts without a puff" }, { symbol: "c", sound: "ts with a puff" }, { symbol: "s", sound: "s in see" }], example: "zī · cī · sī", audio: "zī cī sī" },
+  { id: "pinyin-yw", category: "INITIALS", letters: [{ symbol: "y", sound: "y in yes" }, { symbol: "w", sound: "w in we" }], example: "yī · wū", audio: "yī wū" },
+  { id: "pinyin-aoe", category: "FINALS · VOWELS", letters: [{ symbol: "a", sound: "ah, as in father" }, { symbol: "o", sound: "aw/oh" }, { symbol: "e", sound: "uh (approx.)" }], example: "ā · ō · ē", audio: "ā ō ē" },
+  { id: "pinyin-iuy", category: "FINALS · VOWELS", letters: [{ symbol: "i", sound: "ee" }, { symbol: "u", sound: "oo, as in food" }, { symbol: "ü", sound: "ee with rounded lips" }], example: "yī · wū · yū", audio: "yī wū yū" },
 ];
 
 const tones = [
@@ -19,17 +31,77 @@ const tones = [
   { id: "tone-5", number: "5", name: "Neutral tone", pinyin: "ma", hanzi: "吗", contour: "neutral", cue: "Short and light; it takes its pitch from the syllable before it.", meaning: "question particle" },
 ];
 
+type PronunciationSyllable = {
+  character: string;
+  pinyin: string;
+  sound: string;
+  tone: string;
+};
+
 const vocabulary = [
-  { id: "word-hello", hanzi: "你好", pinyin: "nǐ hǎo", meaning: "Hello (friendly)", note: "The written tones are third + third. Together, the first is pronounced closer to second tone: ní hǎo." },
-  { id: "word-polite", hanzi: "您好", pinyin: "nín hǎo", meaning: "Hello (polite)", note: "Use 您 with clients, senior colleagues, and people you have just met." },
-  { id: "word-name", hanzi: "我叫…", pinyin: "wǒ jiào…", meaning: "My name is…", note: "Add your name after 叫. 我 (wǒ) means “I”; 叫 (jiào) means “to be called.”" },
-  { id: "word-meet", hanzi: "很高兴认识您", pinyin: "hěn gāoxìng rènshi nín", meaning: "Pleased to meet you", note: "A warm, professional way to close an introduction." },
+  { id: "word-hello", hanzi: "你好", meaning: "Hello (friendly)", note: "The written tones are third + third. Together, the first is pronounced closer to second tone: ní hǎo.", syllables: [
+    { character: "你", pinyin: "nǐ", sound: "nee", tone: "3rd, low; rises before hǎo" },
+    { character: "好", pinyin: "hǎo", sound: "how", tone: "3rd, low" },
+  ] },
+  { id: "word-polite", hanzi: "您好", meaning: "Hello (polite)", note: "Use 您 with clients, senior colleagues, and people you have just met.", syllables: [
+    { character: "您", pinyin: "nín", sound: "neen", tone: "2nd, rising" },
+    { character: "好", pinyin: "hǎo", sound: "how", tone: "3rd, low" },
+  ] },
+  { id: "word-name", hanzi: "我叫…", meaning: "My name is…", note: "Add your name after 叫. 我 (wǒ) means “I”; 叫 (jiào) means “to be called.”", syllables: [
+    { character: "我", pinyin: "wǒ", sound: "wuh", tone: "3rd, low" },
+    { character: "叫", pinyin: "jiào", sound: "jyaow", tone: "4th, falling" },
+  ] },
+  { id: "word-meet", hanzi: "很高兴认识您", meaning: "Pleased to meet you", note: "A warm, professional way to close an introduction.", syllables: [
+    { character: "很", pinyin: "hěn", sound: "huhn", tone: "3rd, low" },
+    { character: "高", pinyin: "gāo", sound: "gow", tone: "1st, high and level" },
+    { character: "兴", pinyin: "xìng", sound: "shing", tone: "4th, falling" },
+    { character: "认", pinyin: "rèn", sound: "run", tone: "4th, falling" },
+    { character: "识", pinyin: "shi", sound: "shr", tone: "neutral, light" },
+    { character: "您", pinyin: "nín", sound: "neen", tone: "2nd, rising" },
+  ] },
 ];
 
 const dialogue = [
-  { id: "line-1", speaker: "You", hanzi: "您好！我叫 Alex。", pinyin: "nín hǎo! wǒ jiào Alex.", translation: "Hello! My name is Alex." },
-  { id: "line-2", speaker: "Client", hanzi: "您好，很高兴认识您。", pinyin: "nín hǎo, hěn gāoxìng rènshi nín.", translation: "Hello, pleased to meet you." },
-  { id: "line-3", speaker: "You", hanzi: "我也很高兴认识您。", pinyin: "wǒ yě hěn gāoxìng rènshi nín.", translation: "I’m pleased to meet you, too." },
+  { id: "line-1", speaker: "You", hanzi: "您好！我叫 Alex。", translation: "Hello! My name is Alex.", syllables: [
+    { character: "您", pinyin: "nín", sound: "neen", tone: "2nd, rising" },
+    { character: "好", pinyin: "hǎo", sound: "how", tone: "3rd, low" },
+    { character: "我", pinyin: "wǒ", sound: "wuh", tone: "3rd, low" },
+    { character: "叫", pinyin: "jiào", sound: "jyaow", tone: "4th, falling" },
+    { character: "Alex", pinyin: "your name", sound: "say your name", tone: "" },
+  ] },
+  { id: "line-2", speaker: "Client", hanzi: "您好，很高兴认识您。", translation: "Hello, pleased to meet you.", syllables: [
+    { character: "您", pinyin: "nín", sound: "neen", tone: "2nd, rising" },
+    { character: "好", pinyin: "hǎo", sound: "how", tone: "3rd, low" },
+    { character: "很", pinyin: "hěn", sound: "huhn", tone: "3rd, low" },
+    { character: "高", pinyin: "gāo", sound: "gow", tone: "1st, high and level" },
+    { character: "兴", pinyin: "xìng", sound: "shing", tone: "4th, falling" },
+    { character: "认", pinyin: "rèn", sound: "run", tone: "4th, falling" },
+    { character: "识", pinyin: "shi", sound: "shr", tone: "neutral, light" },
+    { character: "您", pinyin: "nín", sound: "neen", tone: "2nd, rising" },
+  ] },
+  { id: "line-3", speaker: "You", hanzi: "我也很高兴认识您。", translation: "I’m pleased to meet you, too.", syllables: [
+    { character: "我", pinyin: "wǒ", sound: "wuh", tone: "3rd, low" },
+    { character: "也", pinyin: "yě", sound: "yeh", tone: "3rd, low" },
+    { character: "很", pinyin: "hěn", sound: "huhn", tone: "3rd, low" },
+    { character: "高", pinyin: "gāo", sound: "gow", tone: "1st, high and level" },
+    { character: "兴", pinyin: "xìng", sound: "shing", tone: "4th, falling" },
+    { character: "认", pinyin: "rèn", sound: "run", tone: "4th, falling" },
+    { character: "识", pinyin: "shi", sound: "shr", tone: "neutral, light" },
+    { character: "您", pinyin: "nín", sound: "neen", tone: "2nd, rising" },
+  ] },
+];
+
+const introductionSyllables: PronunciationSyllable[] = [
+  { character: "您", pinyin: "nín", sound: "neen", tone: "2nd, rising" },
+  { character: "好", pinyin: "hǎo", sound: "how", tone: "3rd, low" },
+  { character: "我", pinyin: "wǒ", sound: "wuh", tone: "3rd, low" },
+  { character: "叫", pinyin: "jiào", sound: "jyaow", tone: "4th, falling" },
+];
+
+const rehearsalLines = [
+  { hanzi: "您好！", translation: "Greet your client politely.", audio: "scene-hello", syllables: vocabulary[1].syllables },
+  { hanzi: "我叫 ______。", translation: "Say your name.", audio: "scene-name", syllables: introductionSyllables.slice(2) },
+  { hanzi: "很高兴认识您。", translation: "Say you’re pleased to meet them.", audio: "scene-meet", syllables: vocabulary[3].syllables },
 ];
 
 const quizQuestions = [
@@ -59,6 +131,21 @@ function SpeakerIcon({ speaking = false }: { speaking?: boolean }) {
       <path d="M11 5 6 9H3v6h3l5 4z" />
       {speaking ? <><path d="M16 9a5 5 0 0 1 0 6" /><path d="M19 6a9 9 0 0 1 0 12" /></> : <path d="M16 9a5 5 0 0 1 0 6" />}
     </svg>
+  );
+}
+
+function PronunciationGuide({ syllables }: { syllables: PronunciationSyllable[] }) {
+  return (
+    <span className="pronunciation-guide" aria-label={syllables.map((syllable) => `${syllable.character}: ${syllable.pinyin}, sounds like ${syllable.sound}${syllable.tone ? `, ${syllable.tone}` : ""}`).join("; ")}>
+      {syllables.map((syllable, index) => (
+        <span className="pronunciation-syllable" key={`${syllable.character}-${index}`}>
+          <span className="pronunciation-character">{syllable.character}</span>
+          <span className="pronunciation-pinyin">{syllable.pinyin}</span>
+          <span className="pronunciation-sound">sounds like {syllable.sound}</span>
+          {syllable.tone && <span className="pronunciation-tone">{syllable.tone}</span>}
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -147,7 +234,7 @@ function LessonPlayer({
   };
 
   const readySections = [
-    tones.every((tone) => playedAudio.includes(tone.id)) || textPracticeSections.includes(0),
+    (pinyinGroups.every((group) => playedAudio.includes(group.id)) && tones.every((tone) => playedAudio.includes(tone.id))) || textPracticeSections.includes(0),
     vocabulary.every((word) => playedAudio.includes(word.id)) || textPracticeSections.includes(1),
     dialogue.every((line) => playedAudio.includes(line.id)) || textPracticeSections.includes(2),
     quizQuestions.every((question, index) => answers[index] === question.answer),
@@ -163,13 +250,13 @@ function LessonPlayer({
   };
 
   const continueWithText = () => {
-    const ids = activeSection === 0 ? tones.map((tone) => tone.id)
+    const ids = activeSection === 0 ? [...pinyinGroups.map((group) => group.id), ...tones.map((tone) => tone.id)]
       : activeSection === 1 ? vocabulary.map((word) => word.id)
         : dialogue.map((line) => line.id);
     setPlayedAudio((current) => [...new Set([...current, ...ids])]);
     setTextPracticeSections((current) => [...new Set([...current, activeSection])]);
     setAudioFailed(false);
-    setAudioNotice("Text practice marked complete. Read the pinyin aloud and follow each tone contour.");
+    setAudioNotice("Text practice marked complete. Read each pinyin sound aloud and follow the tone guides.");
   };
 
   const handleContinue = () => {
@@ -193,7 +280,7 @@ function LessonPlayer({
           </a>
           <div className="player-header-center">
             <span>UNIT 01 <i>·</i> LESSON 1</span>
-            <strong>Your very first conversation</strong>
+            <strong>Your first Mandarin sounds</strong>
           </div>
           <button className="player-close" onClick={() => {
             stopAudio();
@@ -227,13 +314,39 @@ function LessonPlayer({
 
           <div className="lesson-stage" role="region" aria-label="Lesson activity">
             <div className="lesson-stage-inner">
-              <span className="stage-eyebrow">PART {String(activeSection + 1).padStart(2, "0")} OF 05 <i>·</i> {lessonSections[activeSection].duration.toUpperCase()}</span>
+              <span className="stage-eyebrow">PART {String(activeSection + 1).padStart(2, "0")} OF {String(lessonSections.length).padStart(2, "0")} <i>·</i> {lessonSections[activeSection].duration.toUpperCase()}</span>
 
               {activeSection === 0 && (
                 <section aria-labelledby="lesson-title">
-                  <h1 id="lesson-title">Hear the tones.<br /><span>Find the melody.</span></h1>
-                  <p className="stage-intro">Mandarin uses pitch to distinguish words. Keep the syllable <b>ma</b> the same and listen to how the tone changes its meaning.</p>
+                  <h1 id="lesson-title">Start with Pinyin.<br /><span>Learn the sounds.</span></h1>
+                  <p className="stage-intro">Chinese is written with characters rather than an alphabet. Hanyu Pinyin uses familiar Latin letters to show how to pronounce them. Start with initials (beginning sounds) and finals (vowel sounds). The English hints are approximate—listen to the Mandarin examples too.</p>
                   <p className="audio-provider-note">Pronunciation plays with a Mandarin voice when available, or online speech audio.</p>
+                  <div className="pinyin-heading"><strong>Initials</strong><span>Starting sounds</span></div>
+                  <div className="pinyin-progress"><span>{pinyinGroups.filter((group) => playedAudio.includes(group.id)).length} of {pinyinGroups.length} Pinyin groups heard</span></div>
+                  <div className="pinyin-grid">
+                    {pinyinGroups.filter((group) => group.category === "INITIALS").map((group) => (
+                      <article className={`pinyin-card ${playedAudio.includes(group.id) ? "pinyin-heard" : ""}`} key={group.id}>
+                        <span className="pinyin-category">{group.category}</span>
+                        <div className="pinyin-letters">{group.letters.map((letter) => <span key={letter.symbol}><strong>{letter.symbol}</strong><small>{letter.sound}</small></span>)}</div>
+                        <span className="pinyin-example">{group.example}</span>
+                        <button className={`audio-button pinyin-audio ${playingAudio === group.id ? "audio-active" : ""}`} onClick={() => playAudio(group.id, group.audio)} aria-label={`Hear the Mandarin initials ${group.letters.map((letter) => letter.symbol).join(", ")}: ${group.example}`}><SpeakerIcon speaking={playingAudio === group.id} />{playingAudio === group.id ? "Playing…" : playedAudio.includes(group.id) ? "Play again" : "Hear examples"}</button>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="pinyin-heading"><strong>Simple finals</strong><span>Vowel sounds</span></div>
+                  <div className="pinyin-grid pinyin-finals">
+                    {pinyinGroups.filter((group) => group.category === "FINALS · VOWELS").map((group) => (
+                      <article className={`pinyin-card ${playedAudio.includes(group.id) ? "pinyin-heard" : ""}`} key={group.id}>
+                        <span className="pinyin-category">{group.category}</span>
+                        <div className="pinyin-letters">{group.letters.map((letter) => <span key={letter.symbol}><strong>{letter.symbol}</strong><small>{letter.sound}</small></span>)}</div>
+                        <span className="pinyin-example">{group.example}</span>
+                        <button className={`audio-button pinyin-audio ${playingAudio === group.id ? "audio-active" : ""}`} onClick={() => playAudio(group.id, group.audio)} aria-label={`Hear the Mandarin vowel finals ${group.letters.map((letter) => letter.symbol).join(", ")}: ${group.example}`}><SpeakerIcon speaking={playingAudio === group.id} />{playingAudio === group.id ? "Playing…" : playedAudio.includes(group.id) ? "Play again" : "Hear examples"}</button>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="lesson-explainer"><strong>How to practice Pinyin</strong><p>Read the letter, look at its English sound hint, then play and repeat the example syllables. Mandarin has four main tones plus a light neutral tone; the same syllable can mean different things with a different tone.</p></div>
+                  <div className="pinyin-heading tone-heading"><strong>Now hear the tones</strong><span>Same syllable, five tones</span></div>
+                  <p className="stage-intro">Listen to how the pitch changes the meaning of mā. Try to copy the shape, not just the sound.</p>
                   <div className="tone-note"><span>♫</span><p><strong>How to practice</strong><br />Click each sound. Listen once, then imitate its pitch out loud.</p><span className="tone-note-time">5 sounds</span></div>
                   <div className="tone-grid">
                     {tones.map((tone) => (
@@ -262,14 +375,15 @@ function LessonPlayer({
               {activeSection === 1 && (
                 <section aria-labelledby="lesson-title">
                   <h1 id="lesson-title">Useful words,<br /><span>right from hello.</span></h1>
-                  <p className="stage-intro">Meet someone new with these four building blocks. Click each speaker, listen carefully, and repeat the Chinese aloud.</p>
+                  <p className="stage-intro">Meet someone new with these four building blocks. Each character has its pinyin and an approximate English sound below it; use the tone label as a guide. Click each speaker and repeat the Chinese aloud.</p>
                   <div className="vocab-progress"><span>{vocabulary.filter((word) => playedAudio.includes(word.id)).length} of {vocabulary.length} phrases heard</span><div><i style={{ width: `${(vocabulary.filter((word) => playedAudio.includes(word.id)).length / vocabulary.length) * 100}%` }} /></div></div>
                   <div className="vocab-list">
                     {vocabulary.map((word, index) => (
                       <article className={`vocab-card ${playedAudio.includes(word.id) ? "vocab-heard" : ""}`} key={word.id}>
                         <span className="vocab-number">0{index + 1}</span>
-                        <div className="vocab-main"><strong>{word.hanzi}</strong><span>{word.pinyin}</span><small>{word.meaning}</small></div>
-                        <button className={`audio-button vocab-audio ${playingAudio === word.id ? "audio-active" : ""}`} onClick={() => playAudio(word.id, word.id === "word-name" ? "我叫李安" : word.hanzi)} aria-label={`Hear ${word.hanzi}, ${word.pinyin}`}><SpeakerIcon speaking={playingAudio === word.id} />{playingAudio === word.id ? "Playing…" : playedAudio.includes(word.id) ? "Play again" : "Listen"}</button>
+                        <div className="vocab-main"><strong>{word.hanzi}</strong><small>{word.meaning}</small></div>
+                        <PronunciationGuide syllables={word.syllables} />
+                        <button className={`audio-button vocab-audio ${playingAudio === word.id ? "audio-active" : ""}`} onClick={() => playAudio(word.id, word.id === "word-name" ? "我叫李安" : word.hanzi)} aria-label={`Hear ${word.hanzi}`}><SpeakerIcon speaking={playingAudio === word.id} />{playingAudio === word.id ? "Playing…" : playedAudio.includes(word.id) ? "Play again" : "Listen"}</button>
                         <p className="vocab-note">{word.note}</p>
                       </article>
                     ))}
@@ -281,13 +395,13 @@ function LessonPlayer({
               {activeSection === 2 && (
                 <section aria-labelledby="lesson-title">
                   <h1 id="lesson-title">Put the words<br /><span>into a conversation.</span></h1>
-                  <p className="stage-intro">In Mandarin, the name comes after 我叫 (wǒ jiào, “I am called”). Follow this short introduction, one line at a time.</p>
-                  <div className="sentence-pattern"><span className="pattern-label">YOUR INTRODUCTION</span><strong>您好，我叫 <i>+ your name</i>。</strong><small>nín hǎo, wǒ jiào <i>+ your name</i>.</small><span>Hello, my name is …</span></div>
+                  <p className="stage-intro">Each character is paired with pinyin, an approximate English sound, and its tone. In Mandarin, the name comes after 我叫 (wǒ jiào, “I am called”). Listen, then repeat one syllable at a time.</p>
+                  <div className="sentence-pattern"><span className="pattern-label">YOUR INTRODUCTION</span><strong>您好，我叫 <i>+ your name</i>。</strong><PronunciationGuide syllables={introductionSyllables} /><span>Hello, my name is …</span></div>
                   <div className="dialogue-list">
                     {dialogue.map((line, index) => (
                       <article className={`dialogue-line ${line.speaker === "Client" ? "dialogue-other" : ""}`} key={line.id}>
                         <span className="dialogue-number">{String(index + 1).padStart(2, "0")}</span>
-                        <div className="dialogue-bubble"><span className="dialogue-speaker">{line.speaker === "You" ? "YOU" : "YOUR CLIENT"}</span><strong>{line.hanzi}</strong><span className="dialogue-pinyin">{line.pinyin}</span><small>{line.translation}</small></div>
+                        <div className="dialogue-bubble"><span className="dialogue-speaker">{line.speaker === "You" ? "YOU" : "YOUR CLIENT"}</span><strong>{line.hanzi}</strong><PronunciationGuide syllables={line.syllables} /><small>{line.translation}</small></div>
                         <button className={`audio-button dialogue-audio ${playingAudio === line.id ? "audio-active" : ""}`} onClick={() => playAudio(line.id, line.hanzi.replace("Alex", "艾力克斯"))} aria-label={`Hear dialogue: ${line.hanzi}`}><SpeakerIcon speaking={playingAudio === line.id} />{playingAudio === line.id ? "Playing…" : playedAudio.includes(line.id) ? "Play again" : "Listen"}</button>
                       </article>
                     ))}
@@ -329,16 +443,12 @@ function LessonPlayer({
               {activeSection === 4 && (
                 <section aria-labelledby="lesson-title">
                   <h1 id="lesson-title">Take a breath.<br /><span>Now say it yourself.</span></h1>
-                  <p className="stage-intro">Speaking out loud—even on your own—is how new phrases start to feel natural. Work through this simple client-meeting rehearsal.</p>
+                  <p className="stage-intro">Speaking out loud—even on your own—is how new phrases start to feel natural. Use the pinyin, approximate English sounds, and tone labels to practice each syllable in this client-meeting rehearsal.</p>
                   <div className="speaking-scene"><span>THE SCENE</span><p>You’re welcoming a new client at the start of a video call. Say hello, introduce yourself, and let them know you’re pleased to meet them.</p><span className="scene-translation">Take your time. You can listen to the sample again any time.</span></div>
                   <div className="rehearsal-lines">
-                    {[
-                      { hanzi: "您好！", pinyin: "nín hǎo!", translation: "Greet your client politely.", audio: "scene-hello" },
-                      { hanzi: "我叫 ______。", pinyin: "wǒ jiào ______.", translation: "Say your name.", audio: "scene-name" },
-                      { hanzi: "很高兴认识您。", pinyin: "hěn gāoxìng rènshi nín.", translation: "Say you’re pleased to meet them.", audio: "scene-meet" },
-                    ].map((line) => (
+                    {rehearsalLines.map((line) => (
                       <article className="rehearsal-line" key={line.audio}>
-                        <div><strong>{line.hanzi}</strong><span>{line.pinyin}</span><small>{line.translation}</small></div>
+                        <div><strong>{line.hanzi}</strong><PronunciationGuide syllables={line.syllables} /><small>{line.translation}</small></div>
                         <button className={`audio-button rehearsal-audio ${playingAudio === line.audio ? "audio-active" : ""}`} onClick={() => playAudio(line.audio, line.hanzi.replace("______", "名字"))} aria-label={`Hear ${line.hanzi}`}><SpeakerIcon speaking={playingAudio === line.audio} />{playingAudio === line.audio ? "Playing…" : playedAudio.includes(line.audio) ? "Play again" : "Hear example"}</button>
                       </article>
                     ))}

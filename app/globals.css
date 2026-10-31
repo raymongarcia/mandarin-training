@@ -248,6 +248,21 @@ h1 > span { color: var(--green); }
 .lesson-stage h1 { color: #344137; font-family: var(--serif); font-size: 39px; font-weight: 400; letter-spacing: -.5px; line-height: 1.12; margin: 12px 0 10px; }
 .lesson-stage h1 > span { color: var(--green); }
 .stage-intro { color: #7c857b; font-size: 11px; line-height: 1.75; margin: 0; max-width: 640px; }
+.pinyin-heading { align-items: baseline; display: flex; gap: 8px; margin: 18px 0 8px; }
+.pinyin-heading strong { color: #52674f; font-family: var(--serif); font-size: 16px; font-weight: 500; }
+.pinyin-heading > span { color: #92988e; font-size: 8px; }
+.pinyin-progress { color: #889083; font-size: 8px; margin: 0 0 7px; }
+.pinyin-grid { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pinyin-card { background: #fffefa; border: 1px solid #eeede6; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px 11px; transition: border-color .15s; }
+.pinyin-card.pinyin-heard { border-color: #d5e0d2; }
+.pinyin-category { color: #92988e; font-size: 7px; font-weight: 700; letter-spacing: .8px; }
+.pinyin-letters { display: grid; gap: 8px 5px; grid-template-columns: repeat(auto-fit, minmax(45px, 1fr)); }
+.pinyin-letters > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pinyin-letters strong { color: #3e5942; font-family: "Noto Serif SC", serif; font-size: 16px; font-weight: 500; }
+.pinyin-letters small { color: #7c857b; font-size: 8px; line-height: 1.4; }
+.pinyin-example { color: #697e65; font-size: 10px; letter-spacing: .2px; }
+.pinyin-audio { align-self: flex-start; min-height: 27px; }
+.tone-heading { margin-top: 21px; }
 .tone-note { align-items: center; background: #edf2eb; border-radius: 7px; display: flex; gap: 11px; margin: 21px 0 15px; padding: 12px 14px; }
 .tone-note > span:first-child { align-items: center; background: #fffefa; border-radius: 50%; color: #628065; display: flex; flex: 0 0 30px; font-size: 17px; height: 30px; justify-content: center; }
 .tone-note p { color: #7d8678; flex: 1; font-size: 9px; line-height: 1.6; margin: 0; }
@@ -282,15 +297,22 @@ h1 > span { color: var(--green); }
 .vocab-number { align-items: center; background: #f2f1e9; border-radius: 50%; color: #969789; display: flex; font-size: 8px; height: 24px; justify-content: center; width: 24px; }
 .vocab-main { align-items: baseline; display: flex; flex-wrap: wrap; gap: 0 11px; }
 .vocab-main strong { color: #3b5940; font-family: "Noto Serif SC", serif; font-size: 20px; font-weight: 500; }
-.vocab-main > span { color: #70836d; font-size: 10px; }
 .vocab-main > small { color: #70786d; font-size: 9px; }
+.pronunciation-guide { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 7px 8px; }
+.vocab-card > .pronunciation-guide { grid-column: 2 / 4; grid-row: 2; }
+.pronunciation-syllable { align-items: center; display: flex; flex-direction: column; gap: 2px; min-width: 52px; text-align: center; }
+.pronunciation-character { color: #4a6047; font-family: "Noto Serif SC", serif; font-size: 14px; line-height: 1.2; }
+.pronunciation-pinyin { color: #657f62; font-size: 11px; }
+.pronunciation-sound, .pronunciation-tone { color: #858b81; font-size: 9px; line-height: 1.35; }
+.pronunciation-sound::before { content: "≈ "; }
+.pronunciation-tone { font-size: 8px; }
+.pronunciation-tone { color: #a0a094; }
 .vocab-note { color: #92968c; font-size: 8px; grid-column: 2 / 4; line-height: 1.55; margin: 0; }
-.vocab-audio { grid-column: 3; grid-row: 1; min-width: 79px; }
+.vocab-audio { grid-column: 3; grid-row: 1 / 3; min-width: 79px; }
 .sentence-pattern { background: #edf2eb; border-radius: 7px; display: flex; flex-direction: column; gap: 6px; margin: 20px 0 17px; padding: 15px 17px; }
 .pattern-label { color: #8b9386; font-size: 8px; font-weight: 700; letter-spacing: 1px; }
 .sentence-pattern > strong { color: #38543b; font-family: "Noto Serif SC", serif; font-size: 22px; font-weight: 500; }
-.sentence-pattern > strong i, .sentence-pattern > small i { color: #8c997f; font-family: var(--sans); font-size: 11px; font-style: normal; }
-.sentence-pattern > small { color: #74856f; font-size: 10px; }
+.sentence-pattern > strong i { color: #8c997f; font-family: var(--sans); font-size: 11px; font-style: normal; }
 .sentence-pattern > span:last-child { color: #899184; font-size: 8px; }
 .dialogue-list { display: grid; gap: 9px; }
 .dialogue-line { align-items: center; display: grid; gap: 10px; grid-template-columns: 24px minmax(0, 1fr) auto; }
@@ -299,7 +321,6 @@ h1 > span { color: var(--green); }
 .dialogue-other .dialogue-bubble { background: #f1f2eb; border-color: #e9eadf; }
 .dialogue-speaker { color: #91978c; font-size: 7px; font-weight: 700; letter-spacing: 1px; }
 .dialogue-bubble > strong { color: #405940; font-family: "Noto Serif SC", serif; font-size: 17px; font-weight: 500; }
-.dialogue-pinyin { color: #77856f; font-size: 9px; }
 .dialogue-bubble > small { color: #8e9389; font-size: 8px; }
 .dialogue-audio { min-width: 73px; }
 .speaking-scene { background: #edf2eb; border-radius: 7px; margin: 19px 0 13px; padding: 13px 15px; }
@@ -311,7 +332,6 @@ h1 > span { color: var(--green); }
 .rehearsal-line:last-child { border-bottom: 0; }
 .rehearsal-line > div { display: flex; flex-direction: column; gap: 3px; }
 .rehearsal-line strong { color: #3d5942; font-family: "Noto Serif SC", serif; font-size: 17px; font-weight: 500; }
-.rehearsal-line > div > span { color: #75836f; font-size: 9px; }
 .rehearsal-line small { color: #92978d; font-size: 8px; }
 .rehearsal-audio { flex: 0 0 auto; }
 .practice-checklist { background: #fffefa; border: 1px solid #eeede6; border-radius: 7px; display: grid; gap: 0; margin-top: 13px; padding: 12px 13px 5px; }
@@ -499,6 +519,7 @@ h1 > span { color: var(--green); }
   .lesson-stage h1 { font-size: 31px; }
   .stage-intro { font-size: 10px; }
   .tone-grid { gap: 7px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pinyin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tone-card { min-height: 225px; padding: 10px; }
   .tone-word { gap: 6px; }
   .tone-word strong { font-size: 20px; }
@@ -507,8 +528,13 @@ h1 > span { color: var(--green); }
   .vocab-number { height: 20px; width: 20px; }
   .vocab-main { gap: 0 7px; }
   .vocab-main strong { font-size: 18px; }
-  .vocab-main > span { font-size: 9px; }
   .vocab-main > small { font-size: 8px; }
+  .pronunciation-guide { gap: 6px 5px; }
+  .pronunciation-syllable { min-width: 45px; }
+  .pronunciation-character { font-size: 13px; }
+  .pronunciation-pinyin { font-size: 10px; }
+  .pronunciation-sound { font-size: 8px; }
+  .pronunciation-tone { font-size: 7px; }
   .vocab-note { font-size: 7px; }
   .vocab-audio { min-width: 64px; padding: 5px; }
   .sentence-pattern { padding: 12px; }
