@@ -4,9 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import type { CourseLesson } from "../lib/courseLessons";
 import type { LessonProgress } from "../lib/useLearningProgress";
 
-const sectionTitles = ["Learn the phrases", "Practice aloud", "Check your understanding"];
-const sectionDurations = ["5 min", "5 min", "5 min"];
-
 export default function CourseLessonPlayer({
   lesson,
   initialProgress,
@@ -22,6 +19,11 @@ export default function CourseLessonPlayer({
   onClose: () => void;
   onComplete: () => Promise<{ saved: boolean; cloudSaved?: boolean; message?: string }>;
 }) {
+  const isKidsCourse = lesson.audience === "kids";
+  const sectionTitles = isKidsCourse
+    ? ["Look & learn", "Say it together", "Pick the meaning"]
+    : ["Learn useful phrases", "Practice aloud", "Check your understanding"];
+  const sectionDurations = isKidsCourse ? ["2 min", "3 min", "2 min"] : ["5 min", "5 min", "5 min"];
   const [activeSection, setActiveSection] = useState(Math.min(initialProgress?.sectionIndex ?? 0, 2));
   const [answers, setAnswers] = useState<(number | undefined)[]>(initialProgress?.answers.map((answer) => answer ?? undefined) ?? []);
   const [textPracticeSections, setTextPracticeSections] = useState<number[]>(initialProgress?.textPracticeSections ?? []);
@@ -127,9 +129,9 @@ export default function CourseLessonPlayer({
 
         <div className="player-body">
           <aside className="lesson-outline" aria-label="Lesson sections">
-            <span className="outline-label">YOUR 15-MINUTE LESSON</span>
+            <span className="outline-label">{isKidsCourse ? "PLAYFUL PRACTICE" : lesson.audience === "casual" ? "EVERYDAY PRACTICE" : "YOUR 15-MINUTE LESSON"}</span>
             <strong className="outline-title">{lesson.title}</strong>
-            <span className="outline-total">3 guided activities · 15 minutes</span>
+            <span className="outline-total">{isKidsCourse ? "3 short activities · practice together" : "3 guided activities · 15 minutes"}</span>
             <nav className="outline-nav" aria-label="Lesson activities">
               {sectionTitles.map((title, index) => (
                 <button
@@ -142,7 +144,7 @@ export default function CourseLessonPlayer({
                 </button>
               ))}
             </nav>
-            <div className="outline-tip"><span>學</span><p><strong>Take your time.</strong><br />Read each phrase aloud at your own pace.</p></div>
+            <div className="outline-tip"><span>{isKidsCourse ? "玩" : "學"}</span><p><strong>{isKidsCourse ? "Try it together!" : "Take your time."}</strong><br />{isKidsCourse ? "A grown-up can help you read each phrase aloud." : "Read each phrase aloud at your own pace."}</p></div>
           </aside>
 
           <div className="lesson-stage" role="region" aria-label="Lesson activity">
@@ -152,13 +154,13 @@ export default function CourseLessonPlayer({
               {activeSection === 0 && (
                 <section aria-labelledby="course-lesson-title">
                   <h1 id="course-lesson-title">{lesson.title}</h1>
-                  <p className="stage-intro">{lesson.focus} Read each phrase, listen to the sounds in your head, then practice saying it aloud.</p>
+                  <p className="stage-intro">{lesson.focus} {isKidsCourse ? "Look at each phrase, then say it together with a grown-up." : "Read each phrase, listen to the sounds in your head, then practice saying it aloud."}</p>
                   <div className="dialogue-list">
                     {lesson.phrases.map((phrase, index) => (
                       <article className="dialogue-line" key={phrase.hanzi}>
                         <span className="dialogue-number">{String(index + 1).padStart(2, "0")}</span>
                         <div className="dialogue-bubble">
-                          <span className="dialogue-speaker">KEY PHRASE {index + 1}</span>
+                          <span className="dialogue-speaker">{isKidsCourse ? "NEW WORD" : "KEY PHRASE"} {index + 1}</span>
                           <strong>{phrase.hanzi}</strong>
                           <small>{phrase.pinyin} · {phrase.meaning}</small>
                         </div>
@@ -166,21 +168,21 @@ export default function CourseLessonPlayer({
                     ))}
                   </div>
                   <button className="text-practice-button" onClick={() => setTextPracticeSections((current) => current.includes(0) ? current : [...current, 0])}>
-                    {textPracticeSections.includes(0) ? "Phrases practiced ✓" : "I practiced these phrases"} <span>→</span>
+                    {textPracticeSections.includes(0) ? (isKidsCourse ? "We said them together ✓" : "Phrases practiced ✓") : (isKidsCourse ? "We practiced these words" : "I practiced these phrases")} <span>→</span>
                   </button>
                 </section>
               )}
 
               {activeSection === 1 && (
                 <section aria-labelledby="course-lesson-title">
-                  <h1 id="course-lesson-title">Put the phrases into practice.</h1>
-                  <p className="stage-intro">{lesson.focus} Use each phrase as a role-play prompt and imagine how it would fit into a real work conversation.</p>
+                  <h1 id="course-lesson-title">{isKidsCourse ? "Let’s say them together!" : "Put the phrases into practice."}</h1>
+                  <p className="stage-intro">{lesson.focus} {isKidsCourse ? "Take turns saying each phrase and point to something it reminds you of." : `Try each phrase in an ${lesson.audience === "business" ? "everyday work" : "everyday"} conversation.`}</p>
                   <div className="dialogue-list">
                     {lesson.phrases.map((phrase, index) => (
                       <article className={`dialogue-line ${index % 2 ? "dialogue-other" : ""}`} key={phrase.hanzi}>
                         <span className="dialogue-number">{String(index + 1).padStart(2, "0")}</span>
                         <div className="dialogue-bubble">
-                          <span className="dialogue-speaker">ROLE-PLAY PHRASE {index + 1}</span>
+                          <span className="dialogue-speaker">{isKidsCourse ? "SAY IT TOGETHER" : "PRACTICE PHRASE"} {index + 1}</span>
                           <strong>{phrase.hanzi}</strong>
                           <small>{phrase.pinyin} · {phrase.meaning}</small>
                         </div>
@@ -188,15 +190,15 @@ export default function CourseLessonPlayer({
                     ))}
                   </div>
                   <button className="text-practice-button" onClick={() => setTextPracticeSections((current) => current.includes(1) ? current : [...current, 1])}>
-                    {textPracticeSections.includes(1) ? "Conversation practiced ✓" : "I read the conversation aloud"} <span>→</span>
+                    {textPracticeSections.includes(1) ? (isKidsCourse ? "We practiced together ✓" : "Conversation practiced ✓") : (isKidsCourse ? "We said the words aloud" : "I read the phrases aloud")} <span>→</span>
                   </button>
                 </section>
               )}
 
               {activeSection === 2 && (
                 <section aria-labelledby="course-lesson-title">
-                  <h1 id="course-lesson-title">Check your understanding.</h1>
-                  <p className="stage-intro">Choose the Mandarin phrase that matches each meaning. You can change your answers before finishing.</p>
+                  <h1 id="course-lesson-title">{isKidsCourse ? "Can you find the meaning?" : "Check your understanding."}</h1>
+                  <p className="stage-intro">{isKidsCourse ? "Choose the Mandarin phrase that matches each meaning. Ask a grown-up if you need help." : "Choose the Mandarin phrase that matches each meaning. You can change your answers before finishing."}</p>
                   <div className="quiz-list">
                     {questions.map((question, questionIndex) => (
                       <article className="quiz-card" key={question.prompt}>

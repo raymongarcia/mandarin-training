@@ -13,6 +13,7 @@ type LearningProgressPayload = {
   completedGoals: number[];
   completedLessons: string[];
   lesson: LessonProgressPayload | null;
+  lessonPath?: "kids" | "casual" | "business" | null;
 };
 
 function isIndexArray(value: unknown, maximum: number) {
@@ -26,11 +27,17 @@ function isLearningProgress(value: unknown): value is LearningProgressPayload {
   const progress = value as Record<string, unknown>;
   if (!isIndexArray(progress.completedGoals, 3)
     || !Array.isArray(progress.completedLessons)
-    || !progress.completedLessons.every((lesson) => typeof lesson === "string")) {
+    || !progress.completedLessons.every((lesson) => typeof lesson === "string")
+    || (progress.lessonPath !== undefined
+      && progress.lessonPath !== null
+      && progress.lessonPath !== "kids"
+      && progress.lessonPath !== "casual"
+      && progress.lessonPath !== "business")) {
     return false;
   }
-  if (progress.lesson === null) return true;
+  if (progress.lesson === null) return progress.lessonPath === undefined || progress.lessonPath === null;
   if (!progress.lesson || Array.isArray(progress.lesson) || typeof progress.lesson !== "object") return false;
+  if (progress.lessonPath === null) return false;
 
   const lesson = progress.lesson as Record<string, unknown>;
   return typeof lesson.sectionIndex === "number"

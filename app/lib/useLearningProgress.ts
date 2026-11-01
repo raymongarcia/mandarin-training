@@ -16,12 +16,14 @@ export interface LearningProgress {
   completedGoals: number[];
   completedLessons: string[];
   lesson: LessonProgress | null;
+  lessonPath: "kids" | "casual" | "business" | null;
 }
 
 const EMPTY_PROGRESS: LearningProgress = {
   completedGoals: [],
   completedLessons: [],
   lesson: null,
+  lessonPath: null,
 };
 
 const LOCAL_PROGRESS_ID = "local";
@@ -47,10 +49,13 @@ function parseProgress(value: unknown): LearningProgress | null {
       completedGoals: [...new Set(record.completedGoals)],
       completedLessons: [...new Set(record.completedLessons)],
       lesson: null,
+      lessonPath: null,
     };
   }
 
   if (!record.lesson || Array.isArray(record.lesson) || typeof record.lesson !== "object") return null;
+  const lessonPath = record.lessonPath === undefined ? "business" : record.lessonPath;
+  if (lessonPath !== "kids" && lessonPath !== "casual" && lessonPath !== "business") return null;
   const lesson = record.lesson as Record<string, unknown>;
   const validAnswers = Array.isArray(lesson.answers)
     && lesson.answers.length <= 3
@@ -70,6 +75,7 @@ function parseProgress(value: unknown): LearningProgress | null {
   return {
     completedGoals: [...new Set(record.completedGoals)],
     completedLessons: [...new Set(record.completedLessons)],
+    lessonPath,
     lesson: {
       sectionIndex: lesson.sectionIndex as number,
       playedAudio: [...new Set(lesson.playedAudio)],
@@ -131,6 +137,7 @@ function serializeProgress(progress: LearningProgress): Json {
   return {
     completedGoals: progress.completedGoals,
     completedLessons: progress.completedLessons,
+    lessonPath: progress.lesson ? progress.lessonPath : null,
     lesson: progress.lesson
       ? {
           sectionIndex: progress.lesson.sectionIndex,

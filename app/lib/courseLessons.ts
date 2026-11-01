@@ -6,6 +6,7 @@ export type LessonPhrase = {
 
 export type CourseLesson = {
   id: string;
+  audience: "kids" | "casual" | "business";
   unit: number;
   number: number;
   title: string;
@@ -13,7 +14,7 @@ export type CourseLesson = {
   phrases: LessonPhrase[];
 };
 
-type LessonSeed = Omit<CourseLesson, "id">;
+type LessonSeed = Omit<CourseLesson, "id" | "audience">;
 
 const lessonSeeds: LessonSeed[] = [
   { unit: 1, number: 1, title: "Your first Mandarin sounds", focus: "Greetings, introductions, Pinyin and tones.", phrases: [] },
@@ -246,6 +247,7 @@ const lessonSeeds: LessonSeed[] = [
 
 export const courseLessons: CourseLesson[] = lessonSeeds.map((lesson) => ({
   ...lesson,
+  audience: "business",
   id: `unit-${String(lesson.unit).padStart(2, "0")}-lesson-${String(lesson.number).padStart(2, "0")}`,
 }));
 

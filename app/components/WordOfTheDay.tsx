@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { LearnerPath } from "../lib/learnerPaths";
 
-const words = [
+const businessWords = [
   { hanzi: "合作", pinyin: "hézuò", meaning: "collaboration", example: "期待与您合作。", examplePinyin: "qīdài yǔ nín hézuò.", exampleMeaning: "I look forward to working with you." },
   { hanzi: "会议", pinyin: "huìyì", meaning: "meeting", example: "我们下午有一个会议。", examplePinyin: "wǒmen xiàwǔ yǒu yí ge huìyì.", exampleMeaning: "We have a meeting this afternoon." },
   { hanzi: "客户", pinyin: "kèhù", meaning: "client; customer", example: "客户今天会来。", examplePinyin: "kèhù jīntiān huì lái.", exampleMeaning: "The client will come today." },
@@ -36,15 +37,44 @@ const words = [
   { hanzi: "经验", pinyin: "jīngyàn", meaning: "experience", example: "她有很多工作经验。", examplePinyin: "tā yǒu hěn duō gōngzuò jīngyàn.", exampleMeaning: "She has a lot of work experience." },
 ];
 
+type DailyWord = (typeof businessWords)[number];
+
+const wordsByPath: Record<LearnerPath, DailyWord[]> = {
+  business: businessWords,
+  kids: [
+    { hanzi: "猫", pinyin: "māo", meaning: "cat", example: "小猫在这里。", examplePinyin: "xiǎo māo zài zhèlǐ.", exampleMeaning: "The kitten is here." },
+    { hanzi: "狗", pinyin: "gǒu", meaning: "dog", example: "我喜欢小狗。", examplePinyin: "wǒ xǐhuan xiǎo gǒu.", exampleMeaning: "I like puppies." },
+    { hanzi: "红色", pinyin: "hóngsè", meaning: "red", example: "苹果是红色的。", examplePinyin: "píngguǒ shì hóngsè de.", exampleMeaning: "The apple is red." },
+    { hanzi: "苹果", pinyin: "píngguǒ", meaning: "apple", example: "我想吃苹果。", examplePinyin: "wǒ xiǎng chī píngguǒ.", exampleMeaning: "I want to eat an apple." },
+    { hanzi: "水", pinyin: "shuǐ", meaning: "water", example: "我想喝水。", examplePinyin: "wǒ xiǎng hē shuǐ.", exampleMeaning: "I want to drink water." },
+    { hanzi: "朋友", pinyin: "péngyou", meaning: "friend", example: "你是我的朋友。", examplePinyin: "nǐ shì wǒ de péngyou.", exampleMeaning: "You are my friend." },
+    { hanzi: "开心", pinyin: "kāixīn", meaning: "happy", example: "我今天很开心。", examplePinyin: "wǒ jīntiān hěn kāixīn.", exampleMeaning: "I am very happy today." },
+    { hanzi: "妈妈", pinyin: "māma", meaning: "mom", example: "妈妈在家。", examplePinyin: "māma zài jiā.", exampleMeaning: "Mom is at home." },
+    { hanzi: "玩", pinyin: "wán", meaning: "to play", example: "我们一起玩吧。", examplePinyin: "wǒmen yìqǐ wán ba.", exampleMeaning: "Let’s play together." },
+  ],
+  casual: [
+    { hanzi: "朋友", pinyin: "péngyou", meaning: "friend", example: "他是我的朋友。", examplePinyin: "tā shì wǒ de péngyou.", exampleMeaning: "He is my friend." },
+    { hanzi: "咖啡", pinyin: "kāfēi", meaning: "coffee", example: "我想喝咖啡。", examplePinyin: "wǒ xiǎng hē kāfēi.", exampleMeaning: "I’d like some coffee." },
+    { hanzi: "好吃", pinyin: "hǎochī", meaning: "delicious", example: "这个菜很好吃。", examplePinyin: "zhège cài hěn hǎochī.", exampleMeaning: "This dish is delicious." },
+    { hanzi: "多少钱", pinyin: "duōshao qián", meaning: "how much", example: "这个多少钱？", examplePinyin: "zhège duōshao qián?", exampleMeaning: "How much is this?" },
+    { hanzi: "喜欢", pinyin: "xǐhuan", meaning: "to like", example: "我喜欢旅行。", examplePinyin: "wǒ xǐhuan lǚxíng.", exampleMeaning: "I like traveling." },
+    { hanzi: "火车站", pinyin: "huǒchēzhàn", meaning: "train station", example: "火车站在哪里？", examplePinyin: "huǒchēzhàn zài nǎlǐ?", exampleMeaning: "Where is the train station?" },
+    { hanzi: "明天", pinyin: "míngtiān", meaning: "tomorrow", example: "我们明天见吧。", examplePinyin: "wǒmen míngtiān jiàn ba.", exampleMeaning: "Let’s meet tomorrow." },
+    { hanzi: "谢谢", pinyin: "xièxie", meaning: "thank you", example: "谢谢你的帮助。", examplePinyin: "xièxie nǐ de bāngzhù.", exampleMeaning: "Thank you for your help." },
+    { hanzi: "再见", pinyin: "zàijiàn", meaning: "goodbye", example: "明天见，再见！", examplePinyin: "míngtiān jiàn, zàijiàn!", exampleMeaning: "See you tomorrow, goodbye!" },
+  ],
+};
+
 function getLocalDayNumber(date: Date) {
   return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000);
 }
 
-export default function WordOfTheDay() {
+export default function WordOfTheDay({ audience }: { audience: LearnerPath }) {
   const [dayNumber, setDayNumber] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [audioError, setAudioError] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const words = wordsByPath[audience];
   const word = words[((dayNumber % words.length) + words.length) % words.length];
   const dateLabel = new Intl.DateTimeFormat("en", { month: "long", day: "numeric", timeZone: "UTC" }).format(new Date(dayNumber * 86_400_000));
 

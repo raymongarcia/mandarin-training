@@ -5,10 +5,18 @@ import LessonPlayer from "./components/LessonPlayer";
 import CourseLessonPlayer from "./components/CourseLessonPlayer";
 import WordOfTheDay from "./components/WordOfTheDay";
 import AccountDialog from "./components/AccountDialog";
-import { courseLessons, courseUnits } from "./lib/courseLessons";
+import {
+  courseCatalogs,
+  getCourseLessonCount,
+  isLearnerPath,
+  learnerPathById,
+  learnerPathOptions,
+  type LearnerPath,
+} from "./lib/learnerPaths";
 import { useLearningProgress } from "./lib/useLearningProgress";
 
 const FIRST_LESSON_ID = "unit-01-lesson-01";
+const LEARNER_PATH_STORAGE_KEY = "mandarin-training:learner-path";
 
 type IconName =
   | "grid"
@@ -108,12 +116,6 @@ function getApiError(value: unknown, fallback: string) {
   return fallback;
 }
 
-const lessonGoals = [
-  { title: "Meet your first tones", time: "20 min", done: false },
-  { title: "Say hello & introduce yourself", time: "20 min", done: false },
-  { title: "Practice & review aloud", time: "20 min", done: false },
-];
-
 export default function Home() {
   const {
     client,
@@ -133,11 +135,42 @@ export default function Home() {
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [dashboardError, setDashboardError] = useState("");
   const [todayLabel, setTodayLabel] = useState("");
+  const [selectedPath, setSelectedPath] = useState<LearnerPath>("casual");
   const activityQueue = useRef(Promise.resolve());
+  const pathInfo = learnerPathById[selectedPath];
+  const { lessons: courseLessons, units: courseUnits } = courseCatalogs[selectedPath];
   const completedGoals = progress.completedGoals;
+  const completedLessonsInPath = getCourseLessonCount(courseLessons, progress.completedLessons);
   const nextLesson = courseLessons.find((lesson) => !progress.completedLessons.includes(lesson.id)) ?? null;
   const nextLessonId = nextLesson?.id ?? null;
   const activeCourseLesson = courseLessons.find((lesson) => lesson.id === activeLesson);
+  const activeLessonProgress = progress.lesson
+    && (progress.lessonPath ?? "business") === selectedPath
+    ? progress.lesson
+    : null;
+
+  useEffect(() => {
+    let savedPath: string | null = null;
+    try {
+      savedPath = window.localStorage.getItem(LEARNER_PATH_STORAGE_KEY);
+    } catch (error) {
+      console.error("Could not read the saved learner path.", error);
+    }
+    if (isLearnerPath(savedPath)) {
+      setSelectedPath(savedPath);
+      return;
+    }
+
+    const hasLegacyBusinessProgress = progress.lessonPath === "business"
+      || progress.completedLessons.some((lessonId) => /^unit-\d+-lesson-\d+$/.test(lessonId));
+    if (!hasLegacyBusinessProgress) return;
+    setSelectedPath("business");
+    try {
+      window.localStorage.setItem(LEARNER_PATH_STORAGE_KEY, "business");
+    } catch (error) {
+      console.error("Could not save the migrated learner path.", error);
+    }
+  }, [progress.completedLessons, progress.lessonPath]);
 
   const fetchDashboard = useCallback(async () => {
     if (!client || !user) return;
@@ -230,8 +263,8 @@ export default function Home() {
   }, [client, user]);
 
   const saveLessonProgress = useCallback((lesson: NonNullable<typeof progress.lesson>) => {
-    updateProgress((current) => ({ ...current, lesson }));
-  }, [updateProgress]);
+    updateProgress((current) => ({ ...current, lesson, lessonPath: selectedPath }));
+  }, [selectedPath, updateProgress]);
 
   const completeLesson = useCallback(async (lessonId: string) => {
     const completedLessons = progress.completedLessons.includes(lessonId)
@@ -242,6 +275,7 @@ export default function Home() {
       completedGoals: [0, 1, 2],
       completedLessons,
       lesson: null,
+      lessonPath: null,
     });
     if (!result.saved) return result;
 
@@ -252,7 +286,26 @@ export default function Home() {
       ? `Lesson complete and saved to Supabase.${unlockedLesson ? ` Next lesson unlocked: ${unlockedLesson.title}.` : " You completed the whole course!"}`
       : `Lesson complete and saved on this device.${unlockedLesson ? ` Next lesson unlocked: ${unlockedLesson.title}.` : " You completed the whole course!"}`);
     return result;
-  }, [progress, saveProgressImmediately]);
+  }, [courseLessons, progress, saveProgressImmediately]);
+
+  const selectLearnerPath = (path: LearnerPath) => {
+    if (path === selectedPath) return;
+    setSelectedPath(path);
+    setActiveLesson(null);
+    try {
+      window.localStorage.setItem(LEARNER_PATH_STORAGE_KEY, path);
+    } catch (error) {
+      console.error("Could not save the selected learner path.", error);
+      setNotice("This learning path is selected for now, but your browser could not save the choice.");
+      return;
+    }
+    if (progress.lesson) {
+      updateProgress((current) => ({ ...current, lesson: null, lessonPath: null }));
+      setNotice(`Switched to ${learnerPathById[path].title}. Your completed lessons are kept; the unfinished lesson was cleared.`);
+      return;
+    }
+    setNotice(`${learnerPathById[path].title} selected. Your progress for other paths is kept.`);
+  };
 
   const toggleGoal = (index: number) => {
     updateProgress((current) => ({
@@ -279,14 +332,14 @@ export default function Home() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#" aria-label="Mandarin for Work home">
+        <a className="brand" href="#" aria-label="Little Mandarin home">
           <span className="brand-mark">文</span>
           <span className="brand-copy">little<span>mandarin</span></span>
         </a>
 
         <div className="course-switcher">
-          <div className="course-icon">中</div>
-          <div className="course-copy"><span>LEARNING</span><strong>Business Mandarin</strong></div>
+          <div className="course-icon">{pathInfo.icon}</div>
+          <div className="course-copy"><span>LEARNING PATH</span><strong>{pathInfo.courseTitle}</strong></div>
           <Icon name="chevron" size={16} />
         </div>
 
@@ -359,7 +412,7 @@ export default function Home() {
             <div>
               <div className="eyebrow"><span className="eyebrow-line" /> {todayLabel || "YOUR LEARNING DASHBOARD"}</div>
               <h1>A little Mandarin,<br /><span>goes a long way.</span></h1>
-              <p className="welcome-copy">Build real-world confidence for the conversations that matter at work.</p>
+              <p className="welcome-copy">{pathInfo.welcomeCopy}</p>
             </div>
             <div className="welcome-illustration" aria-label="Illustration of a teacup and Chinese greeting">
               <span className="illustration-sun" />
@@ -372,10 +425,31 @@ export default function Home() {
             </div>
           </section>
 
+          <section className="learner-paths" aria-labelledby="learner-path-heading">
+            <div className="learner-path-heading">
+              <div><span className="eyebrow">MAKE IT YOURS</span><h2 id="learner-path-heading">What kind of learner are you?</h2></div>
+              <span>Change your path anytime</span>
+            </div>
+            <div className="learner-path-options" role="group" aria-label="Choose your Mandarin learning path">
+              {learnerPathOptions.map((option) => (
+                <button
+                  aria-pressed={selectedPath === option.id}
+                  className={`learner-path-option ${selectedPath === option.id ? "learner-path-selected" : ""}`}
+                  key={option.id}
+                  onClick={() => selectLearnerPath(option.id)}
+                >
+                  <span className="learner-path-icon" aria-hidden="true">{option.icon}</span>
+                  <span className="learner-path-copy"><strong>{option.title}</strong><small>{option.description}</small></span>
+                  <span className="learner-path-radio" aria-hidden="true">{selectedPath === option.id ? "✓" : ""}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
           <section className="stats-row" id="progress" aria-label="Your learning at a glance">
             <article className="stat-card">
               <span className="stat-icon stat-time"><Icon name="clock" size={18} /></span>
-              <div><span className="stat-label">THIS WEEK</span><strong>{dashboard ? (dashboard.weeklyStudySeconds / 3600).toFixed(1) : "—"} <small>/ 7–10 hrs</small></strong></div>
+              <div><span className="stat-label">THIS WEEK</span><strong>{dashboard ? (dashboard.weeklyStudySeconds / 3600).toFixed(1) : "—"} <small>/ {pathInfo.weeklyTarget}</small></strong></div>
               <span className="stat-note">{dashboard ? dashboard.weeklyStudySeconds ? "Time well spent" : "Ready when you are" : "Sign in to track time"}</span>
             </article>
             <article className="stat-card">
@@ -385,12 +459,12 @@ export default function Home() {
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-learn"><Icon name="book" size={18} /></span>
-              <div><span className="stat-label">PHRASES PRACTICED</span><strong>{dashboard?.phrasesPracticed ?? "—"} <small>of 4</small></strong></div>
+              <div><span className="stat-label">PHRASES PRACTICED</span><strong>{dashboard?.phrasesPracticed ?? "—"}</strong></div>
               <span className="stat-note">One phrase at a time</span>
             </article>
             <article className="stat-card">
-              <span className="stat-icon stat-course"><span>中</span></span>
-              <div><span className="stat-label">LESSONS COMPLETED</span><strong>{dashboard?.completedLessons ?? progress.completedLessons.length} <small>of 46</small></strong></div>
+              <span className="stat-icon stat-course"><span>{pathInfo.icon}</span></span>
+              <div><span className="stat-label">LESSONS COMPLETED</span><strong>{completedLessonsInPath} <small>of {courseLessons.length}</small></strong></div>
               <span className="stat-note">At your own pace</span>
             </article>
           </section>
@@ -398,7 +472,7 @@ export default function Home() {
           <section className="dashboard-grid">
             <div className="primary-column">
               <article className="today-card">
-                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR STUDY PLAN</span><span className="duration-pill">{nextLesson ? nextLesson.id === FIRST_LESSON_ID ? "60 min guided lesson" : "15 min guided lesson" : "Guided lessons"}</span></div>
+                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR STUDY PLAN</span><span className="duration-pill">{nextLesson ? `${nextLesson.id === FIRST_LESSON_ID ? "60 min" : pathInfo.duration} guided lesson` : "Guided lessons"}</span></div>
                 <div className="today-main">
                   <div className="lesson-art">
                     <span className="art-sun" />
@@ -412,23 +486,23 @@ export default function Home() {
                       ? <>UNIT {String(nextLesson.unit).padStart(2, "0")} <span>·</span> LESSON {nextLesson.number}</>
                       : "COURSE COMPLETE"}</span>
                     <h2>{nextLesson?.title ?? "All lessons complete"}</h2>
-                    <p>{nextLesson?.focus ?? "Congratulations! You’ve completed all 46 lessons in the course."}</p>
+                    <p>{nextLesson?.focus ?? `Wonderful! You’ve completed all ${courseLessons.length} lessons in this path.`}</p>
                     <button className="primary-button" disabled={!nextLessonId} onClick={() => {
                       if (syncStatus === "loading") {
                         setNotice("Checking your saved progress. Please try again in a moment.");
                         return;
                       }
                       setActiveLesson(nextLessonId);
-                    }}>{nextLesson ? nextLesson.id === FIRST_LESSON_ID ? "Start today’s lesson" : "Start next lesson" : "Course complete"} <Icon name="arrow" size={17} /></button>
+                    }}>{nextLesson ? completedLessonsInPath === 0 ? "Start learning" : "Start next lesson" : "Course complete"} <Icon name="arrow" size={17} /></button>
                   </div>
-                  {nextLesson && <div className="lesson-meta"><span><Icon name="clock" size={15} /> {nextLesson.id === FIRST_LESSON_ID ? "60 min" : "15 min"}</span><span><Icon name="chart" size={15} /> Beginner</span></div>}
+                  {nextLesson && <div className="lesson-meta"><span><Icon name="clock" size={15} /> {nextLesson.id === FIRST_LESSON_ID ? "60 min" : pathInfo.duration}</span><span><Icon name="chart" size={15} /> Beginner</span></div>}
                 </div>
-                <div className="lesson-footer"><span>{nextLesson ? "UP NEXT" : "COMPLETE"}</span><span>{nextLesson?.title ?? "46 of 46 lessons complete"} <Icon name="chevron" size={14} /></span></div>
+                <div className="lesson-footer"><span>{nextLesson ? "UP NEXT" : "COMPLETE"}</span><span>{nextLesson?.title ?? `${courseLessons.length} of ${courseLessons.length} lessons complete`} <Icon name="chevron" size={14} /></span></div>
               </article>
 
               <section className="curriculum-section" id="curriculum">
                 <div className="section-heading">
-                  <div><span className="eyebrow">YOUR LEARNING PATH</span><h2>From hello to let&apos;s work together.</h2></div>
+                  <div><span className="eyebrow">YOUR LEARNING PATH</span><h2>{pathInfo.courseHeading}</h2></div>
                   <button className="text-button" onClick={goToCourse}>View course <Icon name="arrow" size={15} /></button>
                 </div>
                 <div className="curriculum-list" id="curriculum-list">
@@ -454,29 +528,29 @@ export default function Home() {
                     );
                   })}
                 </div>
-                <p className="course-note">A practical path from zero to everyday business communication. Progress at your own pace—fluency takes time, and every lesson counts.</p>
+                <p className="course-note">{pathInfo.courseNote}</p>
               </section>
             </div>
 
             <aside className="right-column">
               <section className="week-card">
-                <div className="card-heading"><div><span className="eyebrow">YOUR RHYTHM</span><h3>This week</h3></div><button className="more-button" aria-label="More weekly options" onClick={() => setNotice("Your study target is 1–2 hours a day, aiming for 7–10 hours across the week.")}>···</button></div>
-                <div className="week-summary"><strong>{dashboard ? (dashboard.weeklyStudySeconds / 3600).toFixed(1) : "—"} <span>hours</span></strong><span>of your 7–10 hour target</span></div>
-                <div className="week-progress"><span style={{ width: `${dashboard ? Math.min((dashboard.weeklyStudySeconds / (7 * 3600)) * 100, 100) : 0}%` }} /></div>
+                <div className="card-heading"><div><span className="eyebrow">YOUR RHYTHM</span><h3>This week</h3></div><button className="more-button" aria-label="More weekly options" onClick={() => setNotice(`Your suggested weekly study target is ${pathInfo.weeklyTarget}. Go at a pace that feels right for you.`)}>···</button></div>
+                <div className="week-summary"><strong>{dashboard ? (dashboard.weeklyStudySeconds / 3600).toFixed(1) : "—"} <span>hours</span></strong><span>of your {pathInfo.weeklyTarget} goal</span></div>
+                <div className="week-progress"><span style={{ width: `${dashboard ? Math.min((dashboard.weeklyStudySeconds / pathInfo.weeklyGoalSeconds) * 100, 100) : 0}%` }} /></div>
                 {dashboard ? (
                   <div className="week-days">{dashboard.weekDays.map((day) => <div className={`day-column ${day.today ? "is-today" : ""}`} key={day.date} title={`${day.studySeconds ? Math.round(day.studySeconds / 60) : 0} minutes studied`}><span className="day-label">{day.label}</span><span className={`day-date ${day.studySeconds > 0 ? "is-done" : ""}`}>{day.studySeconds > 0 ? <Icon name="check" size={14} /> : day.day}</span></div>)}</div>
                 ) : <p className="week-empty">{dashboardError || (user ? "Loading your study activity…" : "Sign in to track your study activity.")}</p>}
-                <div className="week-footnote"><span className="footnote-spark">✳</span><p><strong>Progress, not perfection.</strong><br />Aim for 1–2 hours a day, at your pace.</p></div>
+                <div className="week-footnote"><span className="footnote-spark">✳</span><p><strong>Progress, not perfection.</strong><br />A little practice at your own pace goes a long way.</p></div>
                 {dashboardError && dashboard && <p className="dashboard-error" role="alert">{dashboardError}</p>}
               </section>
 
               <section className="goals-card">
                 <div className="card-heading"><div><span className="eyebrow">SMALL STEPS, BIG PROGRESS</span><h3>Today&apos;s goals</h3></div><span className="goal-count">{dashboard ? dashboard.completedGoals : completedGoals.length}/3</span></div>
-                <div className="goal-list">{lessonGoals.map((goal, index) => <button className={`goal-item ${completedGoals.includes(index) ? "goal-complete" : ""}`} key={goal.title} onClick={() => toggleGoal(index)}><span className="goal-check"><Icon name="check" size={13} /></span><span className="goal-copy"><strong>{goal.title}</strong><small>{goal.time}</small></span><Icon name="chevron" size={16} /></button>)}</div>
+                <div className="goal-list">{pathInfo.goals.map((goal, index) => <button className={`goal-item ${completedGoals.includes(index) ? "goal-complete" : ""}`} key={goal.title} onClick={() => toggleGoal(index)}><span className="goal-check"><Icon name="check" size={13} /></span><span className="goal-copy"><strong>{goal.title}</strong><small>{goal.time}</small></span><Icon name="chevron" size={16} /></button>)}</div>
                 <div className="goal-footer"><span className="goal-avatar">你</span><span>You&apos;re building a great habit.</span><span className="goal-spark">✳</span></div>
               </section>
 
-              <WordOfTheDay />
+              <WordOfTheDay audience={selectedPath} />
             </aside>
           </section>
 
@@ -485,7 +559,7 @@ export default function Home() {
       </section>
 
       {activeLesson === FIRST_LESSON_ID && <LessonPlayer
-        initialProgress={progress.lesson}
+        initialProgress={activeLessonProgress}
         onProgressChange={saveLessonProgress}
         onStudySeconds={recordStudySeconds}
         onClose={() => {
@@ -496,7 +570,7 @@ export default function Home() {
       />}
       {activeCourseLesson && activeCourseLesson.id !== FIRST_LESSON_ID && <CourseLessonPlayer
         lesson={activeCourseLesson}
-        initialProgress={progress.lesson}
+        initialProgress={activeLessonProgress}
         onProgressChange={saveLessonProgress}
         onStudySeconds={recordStudySeconds}
         onClose={() => setActiveLesson(null)}
