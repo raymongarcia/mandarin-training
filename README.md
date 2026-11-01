@@ -11,7 +11,7 @@ A practical Mandarin course for communicating with Chinese clients, suppliers, b
 
 Study-time recommendations are targets, not guaranteed fluency milestones. Build skills steadily and at your own pace.
 
-The first guided lesson starts with Hanyu Pinyin initials and vowels, then introduces tones, useful greetings, and a short business introduction. Chinese phrases include character-by-character Pinyin and approximate English sound hints. Audio uses an installed Mandarin voice when available; otherwise, short phrases are requested from Google Translate text-to-speech through the app's pronunciation endpoint.
+The 46-lesson course covers introductions, everyday work talk, meetings, client relationships, supplier negotiations, and review scenarios. Each guided lesson teaches practical Mandarin phrases with Pinyin and English meanings, a short speaking activity, and a comprehension check. The first lesson also includes Mandarin audio, tones, and expanded pronunciation practice.
 
 ## Enable progress sync
 

@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import LessonPlayer from "./components/LessonPlayer";
-import MeetingLessonPlayer from "./components/MeetingLessonPlayer";
+import CourseLessonPlayer from "./components/CourseLessonPlayer";
 import AccountDialog from "./components/AccountDialog";
+import { courseLessons, courseUnits } from "./lib/courseLessons";
 import { useLearningProgress } from "./lib/useLearningProgress";
 
 const FIRST_LESSON_ID = "unit-01-lesson-01";
-const SECOND_LESSON_ID = "unit-01-lesson-02";
 
 type IconName =
   | "grid"
@@ -65,15 +65,6 @@ function Icon({
     </svg>
   );
 }
-
-const curriculum = [
-  { number: "01", title: "Your first conversations", detail: "Greetings, introductions & tones", lessons: "6 lessons", color: "coral", progress: 17 },
-  { number: "02", title: "Everyday work talk", detail: "Numbers, time & daily routines", lessons: "8 lessons", color: "blue", progress: 0 },
-  { number: "03", title: "Meetings & collaboration", detail: "Opinions, plans & follow-ups", lessons: "8 lessons", color: "yellow", progress: 0 },
-  { number: "04", title: "Clients & partnerships", detail: "Build trust and talk business", lessons: "10 lessons", color: "lavender", progress: 0 },
-  { number: "05", title: "Suppliers & negotiation", detail: "Orders, pricing & delivery", lessons: "8 lessons", color: "green", progress: 0 },
-  { number: "06", title: "Put it into practice", detail: "Real-world conversations & review", lessons: "6 lessons", color: "peach", progress: 0 },
-];
 
 type DashboardSummary = {
   displayName: string;
@@ -143,10 +134,9 @@ export default function Home() {
   const [todayLabel, setTodayLabel] = useState("");
   const activityQueue = useRef(Promise.resolve());
   const completedGoals = progress.completedGoals;
-  const nextLessonId = progress.completedLessons.includes(FIRST_LESSON_ID)
-    ? progress.completedLessons.includes(SECOND_LESSON_ID) ? null : SECOND_LESSON_ID
-    : FIRST_LESSON_ID;
-  const unitOneCompletedLessons = Math.min(6, progress.completedLessons.filter((lesson) => lesson.startsWith("unit-01-lesson-")).length);
+  const nextLesson = courseLessons.find((lesson) => !progress.completedLessons.includes(lesson.id)) ?? null;
+  const nextLessonId = nextLesson?.id ?? null;
+  const activeCourseLesson = courseLessons.find((lesson) => lesson.id === activeLesson);
 
   const fetchDashboard = useCallback(async () => {
     if (!client || !user) return;
@@ -254,15 +244,12 @@ export default function Home() {
     });
     if (!result.saved) return result;
 
+    const unlockedLesson = courseLessons.find((lesson) => !completedLessons.includes(lesson.id));
     setActiveLesson(null);
     window.speechSynthesis?.cancel();
     setNotice(result.cloudSaved
-      ? lessonId === FIRST_LESSON_ID
-        ? "Lesson 1 saved to Supabase. Lesson 2, Meeting someone new, is now unlocked."
-        : "Excellent work. Lesson 2 progress has been saved to Supabase."
-      : lessonId === FIRST_LESSON_ID
-        ? "Lesson 1 is saved on this device. Lesson 2, Meeting someone new, is now unlocked."
-        : result.message ?? "Lesson completed and saved on this device.");
+      ? `Lesson complete and saved to Supabase.${unlockedLesson ? ` Next lesson unlocked: ${unlockedLesson.title}.` : " You completed the whole course!"}`
+      : `Lesson complete and saved on this device.${unlockedLesson ? ` Next lesson unlocked: ${unlockedLesson.title}.` : " You completed the whole course!"}`);
     return result;
   }, [progress, saveProgressImmediately]);
 
@@ -410,7 +397,7 @@ export default function Home() {
           <section className="dashboard-grid">
             <div className="primary-column">
               <article className="today-card">
-                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR STUDY PLAN</span><span className="duration-pill">{nextLessonId === SECOND_LESSON_ID ? "15 min guided lesson" : nextLessonId ? "60 min guided lesson" : "Guided lessons"}</span></div>
+                <div className="today-topline"><span className="today-label"><span className="today-dot" /> YOUR STUDY PLAN</span><span className="duration-pill">{nextLesson ? nextLesson.id === FIRST_LESSON_ID ? "60 min guided lesson" : "15 min guided lesson" : "Guided lessons"}</span></div>
                 <div className="today-main">
                   <div className="lesson-art">
                     <span className="art-sun" />
@@ -420,24 +407,22 @@ export default function Home() {
                     <span className="art-plant"><i /><i /><i /></span>
                   </div>
                   <div className="today-details">
-                    <span className="unit-kicker">{nextLessonId ? <>UNIT 01 <span>·</span> LESSON {nextLessonId === SECOND_LESSON_ID ? "2" : "1"}</> : "UNIT 01 · COMPLETE"}</span>
-                    <h2>{nextLessonId === SECOND_LESSON_ID ? "Meeting someone new" : nextLessonId ? <>Your first Mandarin<br />sounds</> : "More lessons soon"}</h2>
-                    <p>{nextLessonId === SECOND_LESSON_ID
-                      ? "Practice a polite greeting, introduce yourself, and make a confident first impression."
-                      : nextLessonId
-                        ? "Start with Pinyin pronunciation, then practice greeting and introducing yourself to a new client."
-                        : "You’ve completed all currently available guided lessons. More lessons are on the way."}</p>
+                    <span className="unit-kicker">{nextLesson
+                      ? <>UNIT {String(nextLesson.unit).padStart(2, "0")} <span>·</span> LESSON {nextLesson.number}</>
+                      : "COURSE COMPLETE"}</span>
+                    <h2>{nextLesson?.title ?? "All lessons complete"}</h2>
+                    <p>{nextLesson?.focus ?? "Congratulations! You’ve completed all 46 lessons in the course."}</p>
                     <button className="primary-button" disabled={!nextLessonId} onClick={() => {
                       if (syncStatus === "loading") {
                         setNotice("Checking your saved progress. Please try again in a moment.");
                         return;
                       }
                       setActiveLesson(nextLessonId);
-                    }}>{nextLessonId === SECOND_LESSON_ID ? "Start next lesson" : nextLessonId ? "Start today’s lesson" : "All available lessons complete"} <Icon name="arrow" size={17} /></button>
+                    }}>{nextLesson ? nextLesson.id === FIRST_LESSON_ID ? "Start today’s lesson" : "Start next lesson" : "Course complete"} <Icon name="arrow" size={17} /></button>
                   </div>
-                  {nextLessonId && <div className="lesson-meta"><span><Icon name="clock" size={15} /> {nextLessonId === SECOND_LESSON_ID ? "15 min" : "60 min"}</span><span><Icon name="chart" size={15} /> Beginner</span></div>}
+                  {nextLesson && <div className="lesson-meta"><span><Icon name="clock" size={15} /> {nextLesson.id === FIRST_LESSON_ID ? "60 min" : "15 min"}</span><span><Icon name="chart" size={15} /> Beginner</span></div>}
                 </div>
-                <div className="lesson-footer"><span>{nextLessonId === SECOND_LESSON_ID ? "READY NEXT" : "UP NEXT"}</span><span>{nextLessonId === SECOND_LESSON_ID ? "Start your next lesson above" : nextLessonId ? "Meeting someone new" : "More lessons coming soon"} <Icon name="chevron" size={14} /></span></div>
+                <div className="lesson-footer"><span>{nextLesson ? "UP NEXT" : "COMPLETE"}</span><span>{nextLesson?.title ?? "46 of 46 lessons complete"} <Icon name="chevron" size={14} /></span></div>
               </article>
 
               <section className="curriculum-section" id="curriculum">
@@ -446,20 +431,27 @@ export default function Home() {
                   <button className="text-button" onClick={goToCourse}>View course <Icon name="arrow" size={15} /></button>
                 </div>
                 <div className="curriculum-list" id="curriculum-list">
-                  {curriculum.map((unit) => (
-                    <button
-                      className={`unit-row ${unit.number === "01" ? "current-unit" : ""}`}
-                      key={unit.number}
-                      onClick={() => unit.number === "01" && nextLessonId
-                        ? setActiveLesson(nextLessonId)
-                        : setNotice(unit.number === "01" ? "You’ve completed all currently available lessons." : `${unit.title} is coming up in your learning path.`)}
-                    >
-                      <span className={`unit-number ${unit.color}`}>{unit.number}</span>
-                      <span className="unit-info"><strong>{unit.title}</strong><small>{unit.detail}</small></span>
-                      <span className="unit-progress"><span className="progress-track"><span style={{ width: `${unit.number === "01" ? (unitOneCompletedLessons / 6) * 100 : 0}%` }} /></span><small>{unit.number === "01" ? `${unitOneCompletedLessons} of 6` : unit.lessons}</small></span>
-                      <span className="unit-arrow"><Icon name="chevron" size={18} /></span>
-                    </button>
-                  ))}
+                  {courseUnits.map((unit) => {
+                    const unitNumber = Number(unit.number);
+                    const completedInUnit = courseLessons.filter((lesson) => lesson.unit === unitNumber && progress.completedLessons.includes(lesson.id)).length;
+                    const isNextUnit = nextLesson?.unit === unitNumber;
+                    return (
+                      <button
+                        className={`unit-row ${isNextUnit ? "current-unit" : ""}`}
+                        key={unit.number}
+                        onClick={() => isNextUnit && nextLessonId
+                          ? setActiveLesson(nextLessonId)
+                          : setNotice(completedInUnit === unit.lessons
+                            ? `${unit.title} is complete.`
+                            : nextLesson ? `Complete “${nextLesson.title}” to unlock the next unit.` : "You’ve completed the course.")}
+                      >
+                        <span className={`unit-number ${unit.color}`}>{unit.number}</span>
+                        <span className="unit-info"><strong>{unit.title}</strong><small>{unit.detail}</small></span>
+                        <span className="unit-progress"><span className="progress-track"><span style={{ width: `${(completedInUnit / unit.lessons) * 100}%` }} /></span><small>{completedInUnit} of {unit.lessons}</small></span>
+                        <span className="unit-arrow"><Icon name="chevron" size={18} /></span>
+                      </button>
+                    );
+                  })}
                 </div>
                 <p className="course-note">A practical path from zero to everyday business communication. Progress at your own pace—fluency takes time, and every lesson counts.</p>
               </section>
@@ -506,12 +498,13 @@ export default function Home() {
         }}
         onComplete={() => completeLesson(FIRST_LESSON_ID)}
       />}
-      {activeLesson === SECOND_LESSON_ID && <MeetingLessonPlayer
+      {activeCourseLesson && activeCourseLesson.id !== FIRST_LESSON_ID && <CourseLessonPlayer
+        lesson={activeCourseLesson}
         initialProgress={progress.lesson}
         onProgressChange={saveLessonProgress}
         onStudySeconds={recordStudySeconds}
         onClose={() => setActiveLesson(null)}
-        onComplete={() => completeLesson(SECOND_LESSON_ID)}
+        onComplete={() => completeLesson(activeCourseLesson.id)}
       />}
 
       {accountDialogOpen && <AccountDialog

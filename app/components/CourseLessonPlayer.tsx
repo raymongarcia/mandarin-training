@@ -1,39 +1,47 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CourseLesson } from "../lib/courseLessons";
 import type { LessonProgress } from "../lib/useLearningProgress";
 
-const sections = [
-  { title: "Learn the greeting", duration: "5 min" },
-  { title: "Practice the conversation", duration: "5 min" },
-  { title: "Check your understanding", duration: "5 min" },
-];
+const sectionTitles = ["Learn the phrases", "Practice aloud", "Check your understanding"];
+const sectionDurations = ["5 min", "5 min", "5 min"];
 
-const questions = [
-  { prompt: "How do you politely say “My name is…”?", options: ["我叫…", "再见", "谢谢"], answer: 0 },
-  { prompt: "What does 很高兴认识您 mean?", options: ["Where are you from?", "Pleased to meet you.", "Goodbye for now."], answer: 1 },
-  { prompt: "Which greeting is polite for a new client?", options: ["您好", "吗", "好"], answer: 0 },
-];
-
-export default function MeetingLessonPlayer({
+export default function CourseLessonPlayer({
+  lesson,
   initialProgress,
   onProgressChange,
   onStudySeconds,
   onClose,
   onComplete,
 }: {
+  lesson: CourseLesson;
   initialProgress: LessonProgress | null;
   onProgressChange: (progress: LessonProgress) => void;
   onStudySeconds: (seconds: number) => void;
   onClose: () => void;
   onComplete: () => Promise<{ saved: boolean; cloudSaved?: boolean; message?: string }>;
 }) {
-  const [activeSection, setActiveSection] = useState(Math.min(initialProgress?.sectionIndex ?? 0, sections.length - 1));
+  const [activeSection, setActiveSection] = useState(Math.min(initialProgress?.sectionIndex ?? 0, 2));
   const [answers, setAnswers] = useState<(number | undefined)[]>(initialProgress?.answers.map((answer) => answer ?? undefined) ?? []);
   const [textPracticeSections, setTextPracticeSections] = useState<number[]>(initialProgress?.textPracticeSections ?? []);
   const [isCompleting, setIsCompleting] = useState(false);
   const [completionError, setCompletionError] = useState("");
   const lastStudyReport = useRef(Date.now());
+
+  const questions = lesson.phrases.map((phrase, questionIndex) => {
+    const choices = lesson.phrases.map((choice, phraseIndex) => ({
+      phrase: choice,
+      phraseIndex,
+    }));
+    const offset = (questionIndex * 2 + 1) % choices.length;
+    const orderedChoices = [...choices.slice(offset), ...choices.slice(0, offset)];
+    return {
+      prompt: `Choose the Mandarin phrase for “${phrase.meaning}.”`,
+      choices: orderedChoices,
+      answer: orderedChoices.findIndex((choice) => choice.phraseIndex === questionIndex),
+    };
+  });
 
   useEffect(() => {
     onProgressChange({
@@ -52,10 +60,15 @@ export default function MeetingLessonPlayer({
         lastStudyReport.current = now;
         return;
       }
-      const seconds = Math.floor((now - lastStudyReport.current) / 1000);
-      if (seconds > 0) {
+      const elapsedSeconds = Math.floor((now - lastStudyReport.current) / 1000);
+      if (elapsedSeconds > 0) {
         lastStudyReport.current = now;
-        onStudySeconds(Math.min(seconds, 120));
+        let remainingSeconds = elapsedSeconds;
+        while (remainingSeconds > 0) {
+          const batch = Math.min(remainingSeconds, 120);
+          onStudySeconds(batch);
+          remainingSeconds -= batch;
+        }
       }
     };
     const timer = window.setInterval(reportStudyTime, 60_000);
@@ -73,7 +86,7 @@ export default function MeetingLessonPlayer({
 
   const handleContinue = async () => {
     if (!readySections[activeSection]) return;
-    if (activeSection < sections.length - 1) {
+    if (activeSection < sectionTitles.length - 1) {
       setActiveSection((current) => current + 1);
       document.querySelector(".lesson-stage")?.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -95,37 +108,37 @@ export default function MeetingLessonPlayer({
 
   return (
     <div className="lesson-overlay">
-      <section className="lesson-player" role="dialog" aria-modal="true" aria-labelledby="lesson-title">
+      <section className="lesson-player" role="dialog" aria-modal="true" aria-labelledby="course-lesson-title">
         <header className="player-header">
           <a className="player-brand" href="#" onClick={(event) => event.preventDefault()}>
             <span className="brand-mark">文</span>
             <span><strong>little mandarin</strong><small>YOUR GUIDED LESSON</small></span>
           </a>
           <div className="player-header-center">
-            <span>UNIT 01 <i>·</i> LESSON 2</span>
-            <strong>Meeting someone new</strong>
+            <span>UNIT {String(lesson.unit).padStart(2, "0")} <i>·</i> LESSON {lesson.number}</span>
+            <strong>{lesson.title}</strong>
           </div>
           <button className="player-close" onClick={onClose} aria-label="Exit lesson">Exit lesson <span>×</span></button>
         </header>
 
         <div className="player-progress">
-          <span style={{ width: `${(readySections.filter(Boolean).length / sections.length) * 100}%` }} />
+          <span style={{ width: `${(readySections.filter(Boolean).length / sectionTitles.length) * 100}%` }} />
         </div>
 
         <div className="player-body">
           <aside className="lesson-outline" aria-label="Lesson sections">
             <span className="outline-label">YOUR 15-MINUTE LESSON</span>
-            <strong className="outline-title">A confident<br />introduction</strong>
+            <strong className="outline-title">{lesson.title}</strong>
             <span className="outline-total">3 guided activities · 15 minutes</span>
             <nav className="outline-nav" aria-label="Lesson activities">
-              {sections.map((section, index) => (
+              {sectionTitles.map((title, index) => (
                 <button
                   className={`outline-item ${activeSection === index ? "outline-active" : ""} ${readySections[index] ? "outline-done" : ""}`}
-                  key={section.title}
+                  key={title}
                   onClick={() => setActiveSection(index)}
                 >
                   <span className="outline-index">{readySections[index] ? "✓" : String(index + 1).padStart(2, "0")}</span>
-                  <span className="outline-info"><strong>{section.title}</strong><small>{section.duration}</small></span>
+                  <span className="outline-info"><strong>{title}</strong><small>{sectionDurations[index]}</small></span>
                 </button>
               ))}
             </nav>
@@ -134,16 +147,23 @@ export default function MeetingLessonPlayer({
 
           <div className="lesson-stage" role="region" aria-label="Lesson activity">
             <div className="lesson-stage-inner">
-              <span className="stage-eyebrow">PART {String(activeSection + 1).padStart(2, "0")} OF 03 <i>·</i> {sections[activeSection].duration.toUpperCase()}</span>
+              <span className="stage-eyebrow">PART {String(activeSection + 1).padStart(2, "0")} OF 03 <i>·</i> {sectionDurations[activeSection].toUpperCase()}</span>
 
               {activeSection === 0 && (
-                <section aria-labelledby="lesson-title">
-                  <h1 id="lesson-title">Make a warm introduction.</h1>
-                  <p className="stage-intro">Use these polite phrases when meeting a new colleague or client. Read each line aloud, then mark the practice complete.</p>
+                <section aria-labelledby="course-lesson-title">
+                  <h1 id="course-lesson-title">{lesson.title}</h1>
+                  <p className="stage-intro">{lesson.focus} Read each phrase, listen to the sounds in your head, then practice saying it aloud.</p>
                   <div className="dialogue-list">
-                    <div className="dialogue-line"><span className="dialogue-number">01</span><div className="dialogue-bubble"><span className="dialogue-speaker">POLITE GREETING</span><strong>您好</strong><small>nín hǎo · Hello (polite)</small></div></div>
-                    <div className="dialogue-line"><span className="dialogue-number">02</span><div className="dialogue-bubble"><span className="dialogue-speaker">INTRODUCE YOURSELF</span><strong>我叫…</strong><small>wǒ jiào… · My name is…</small></div></div>
-                    <div className="dialogue-line"><span className="dialogue-number">03</span><div className="dialogue-bubble"><span className="dialogue-speaker">BE COURTEOUS</span><strong>很高兴认识您</strong><small>hěn gāo xìng rèn shi nín · Pleased to meet you</small></div></div>
+                    {lesson.phrases.map((phrase, index) => (
+                      <article className="dialogue-line" key={phrase.hanzi}>
+                        <span className="dialogue-number">{String(index + 1).padStart(2, "0")}</span>
+                        <div className="dialogue-bubble">
+                          <span className="dialogue-speaker">KEY PHRASE {index + 1}</span>
+                          <strong>{phrase.hanzi}</strong>
+                          <small>{phrase.pinyin} · {phrase.meaning}</small>
+                        </div>
+                      </article>
+                    ))}
                   </div>
                   <button className="text-practice-button" onClick={() => setTextPracticeSections((current) => current.includes(0) ? current : [...current, 0])}>
                     {textPracticeSections.includes(0) ? "Phrases practiced ✓" : "I practiced these phrases"} <span>→</span>
@@ -152,13 +172,20 @@ export default function MeetingLessonPlayer({
               )}
 
               {activeSection === 1 && (
-                <section aria-labelledby="lesson-title">
-                  <h1 id="lesson-title">Put the phrases together.</h1>
-                  <p className="stage-intro">Follow this short first-meeting exchange. Try saying your own name in place of Alex.</p>
+                <section aria-labelledby="course-lesson-title">
+                  <h1 id="course-lesson-title">Put the phrases into practice.</h1>
+                  <p className="stage-intro">{lesson.focus} Use each phrase as a role-play prompt and imagine how it would fit into a real work conversation.</p>
                   <div className="dialogue-list">
-                    <div className="dialogue-line"><span className="dialogue-number">01</span><div className="dialogue-bubble"><span className="dialogue-speaker">YOU</span><strong>您好！我叫 Alex。</strong><small>nín hǎo! wǒ jiào Alex. · Hello! My name is Alex.</small></div></div>
-                    <div className="dialogue-line dialogue-other"><span className="dialogue-number">02</span><div className="dialogue-bubble"><span className="dialogue-speaker">NEW COLLEAGUE</span><strong>很高兴认识您。</strong><small>hěn gāo xìng rèn shi nín. · Pleased to meet you.</small></div></div>
-                    <div className="dialogue-line"><span className="dialogue-number">03</span><div className="dialogue-bubble"><span className="dialogue-speaker">YOU</span><strong>我也很高兴认识您。</strong><small>wǒ yě hěn gāo xìng rèn shi nín. · I’m pleased to meet you, too.</small></div></div>
+                    {lesson.phrases.map((phrase, index) => (
+                      <article className={`dialogue-line ${index % 2 ? "dialogue-other" : ""}`} key={phrase.hanzi}>
+                        <span className="dialogue-number">{String(index + 1).padStart(2, "0")}</span>
+                        <div className="dialogue-bubble">
+                          <span className="dialogue-speaker">ROLE-PLAY PHRASE {index + 1}</span>
+                          <strong>{phrase.hanzi}</strong>
+                          <small>{phrase.pinyin} · {phrase.meaning}</small>
+                        </div>
+                      </article>
+                    ))}
                   </div>
                   <button className="text-practice-button" onClick={() => setTextPracticeSections((current) => current.includes(1) ? current : [...current, 1])}>
                     {textPracticeSections.includes(1) ? "Conversation practiced ✓" : "I read the conversation aloud"} <span>→</span>
@@ -167,26 +194,27 @@ export default function MeetingLessonPlayer({
               )}
 
               {activeSection === 2 && (
-                <section aria-labelledby="lesson-title">
-                  <h1 id="lesson-title">Check your understanding.</h1>
-                  <p className="stage-intro">Choose the best answer for each question. You can change your answers before finishing.</p>
+                <section aria-labelledby="course-lesson-title">
+                  <h1 id="course-lesson-title">Check your understanding.</h1>
+                  <p className="stage-intro">Choose the Mandarin phrase that matches each meaning. You can change your answers before finishing.</p>
                   <div className="quiz-list">
                     {questions.map((question, questionIndex) => (
                       <article className="quiz-card" key={question.prompt}>
-                        <span className="quiz-count">QUESTION {questionIndex + 1} <span>OF 3</span></span>
+                        <span className="quiz-count">QUESTION {questionIndex + 1} <span>OF {questions.length}</span></span>
                         <h2>{question.prompt}</h2>
                         <div className="quiz-options">
-                          {question.options.map((option, optionIndex) => (
+                          {question.choices.map(({ phrase, phraseIndex }, optionIndex) => (
                             <button
                               className={`quiz-option ${answers[questionIndex] === optionIndex ? "option-selected" : ""}`}
-                              key={option}
+                              key={phrase.hanzi}
                               onClick={() => setAnswers((current) => {
                                 const next = [...current];
                                 next[questionIndex] = optionIndex;
                                 return next;
                               })}
                             >
-                              <span>{String.fromCharCode(65 + optionIndex)}</span>{option}
+                              <span>{String.fromCharCode(65 + optionIndex)}</span>{phrase.hanzi}<small> · {phrase.pinyin}</small>
+                              {answers[questionIndex] === optionIndex && <span className="option-check" aria-label={`Selected answer ${phraseIndex + 1}`}>✓</span>}
                             </button>
                           ))}
                         </div>
@@ -202,11 +230,11 @@ export default function MeetingLessonPlayer({
         </div>
 
         <footer className="player-footer">
-          <div className="footer-lesson-progress"><strong>{activeSection + 1}</strong><span> / 3 sections</span><small>{sections[activeSection].title}</small></div>
+          <div className="footer-lesson-progress"><strong>{activeSection + 1}</strong><span> / 3 sections</span><small>{sectionTitles[activeSection]}</small></div>
           {activeSection > 0 && <button className="player-back" onClick={() => setActiveSection((current) => current - 1)}>← Previous</button>}
-          <button className="player-next" disabled={!readySections[activeSection] || (activeSection === sections.length - 1 && !readySections.slice(0, -1).every(Boolean)) || isCompleting} onClick={() => void handleContinue()}>
-            {isCompleting ? "Saving lesson…" : activeSection === sections.length - 1 ? "Complete lesson" : "Complete section & continue"}
-            <span aria-hidden="true">{activeSection === sections.length - 1 ? "✓" : "→"}</span>
+          <button className="player-next" disabled={!readySections[activeSection] || (activeSection === sectionTitles.length - 1 && !readySections.slice(0, -1).every(Boolean)) || isCompleting} onClick={() => void handleContinue()}>
+            {isCompleting ? "Saving lesson…" : activeSection === sectionTitles.length - 1 ? "Complete lesson" : "Complete section & continue"}
+            <span aria-hidden="true">{activeSection === sectionTitles.length - 1 ? "✓" : "→"}</span>
           </button>
         </footer>
       </section>
