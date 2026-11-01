@@ -157,7 +157,7 @@ function LessonPlayer({
   onStudySeconds,
 }: {
   onClose: () => void;
-  onComplete: () => void;
+  onComplete: () => Promise<{ saved: boolean; error?: string }>;
   initialProgress: LessonProgress | null;
   onProgressChange: (progress: LessonProgress) => void;
   onStudySeconds: (seconds: number) => void;
@@ -170,6 +170,8 @@ function LessonPlayer({
   const [answers, setAnswers] = useState<(number | undefined)[]>(initialProgress?.answers.map((answer) => answer ?? undefined) ?? []);
   const [practiceChecks, setPracticeChecks] = useState<number[]>(initialProgress?.practiceChecks ?? []);
   const [textPracticeSections, setTextPracticeSections] = useState<number[]>(initialProgress?.textPracticeSections ?? []);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completionError, setCompletionError] = useState("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastStudyReport = useRef(Date.now());
 
@@ -294,12 +296,23 @@ function LessonPlayer({
     setAudioNotice("Text practice marked complete. Read each pinyin sound aloud and follow the tone guides.");
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!sectionReady) return;
     if (activeSection === lessonSections.length - 1) {
+      if (isCompleting) return;
       reportStudyTime();
       stopAudio();
-      onComplete();
+      setIsCompleting(true);
+      setCompletionError("");
+      try {
+        const result = await onComplete();
+        if (!result.saved) setCompletionError(result.error ?? "Your lesson could not be saved. Please try again.");
+      } catch (error) {
+        console.error("Could not complete the lesson.", error);
+        setCompletionError("Your lesson could not be saved. Please try again.");
+      } finally {
+        setIsCompleting(false);
+      }
       return;
     }
     setActiveSection((current) => current + 1);
@@ -510,6 +523,7 @@ function LessonPlayer({
 
               {audioNotice && <p className="audio-notice" role="status">{audioNotice}</p>}
               {audioFailed && activeSection < 3 && <button className="text-practice-button" onClick={continueWithText}>Continue with text-only practice <span>→</span></button>}
+              {completionError && <p className="audio-notice" role="alert">{completionError}</p>}
             </div>
           </div>
         </div>
@@ -517,8 +531,8 @@ function LessonPlayer({
         <footer className="player-footer">
           <div className="footer-lesson-progress"><strong>{activeSection + 1}</strong><span> / {lessonSections.length} sections</span><small>{lessonSections[activeSection].title}</small></div>
           {activeSection > 0 && <button className="player-back" onClick={() => setActiveSection((current) => current - 1)}>← Previous</button>}
-          <button className="player-next" disabled={!sectionReady || (activeSection === lessonSections.length - 1 && !readySections.slice(0, -1).every(Boolean))} onClick={handleContinue}>
-            {activeSection === lessonSections.length - 1 ? readySections.slice(0, -1).every(Boolean) ? "Complete lesson" : "Finish previous sections first" : "Complete section & continue"}
+          <button className="player-next" disabled={!sectionReady || (activeSection === lessonSections.length - 1 && !readySections.slice(0, -1).every(Boolean)) || isCompleting} onClick={handleContinue}>
+            {isCompleting ? "Saving lesson…" : activeSection === lessonSections.length - 1 ? readySections.slice(0, -1).every(Boolean) ? "Complete lesson" : "Finish previous sections first" : "Complete section & continue"}
             <span aria-hidden="true">{activeSection === lessonSections.length - 1 ? "✓" : "→"}</span>
           </button>
         </footer>

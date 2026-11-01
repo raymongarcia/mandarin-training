@@ -15,9 +15,9 @@ The first guided lesson starts with Hanyu Pinyin initials and vowels, then intro
 
 ## Enable progress sync
 
-Progress and study activity are private to each signed-in learner. Supabase sends a one-time email sign-in link; progress is saved to rows protected by Supabase Row Level Security. The dashboard API calculates study time, daily streaks, completed lessons, practiced phrases, and weekly activity from those records. Time is tracked while the guided lesson is open.
+Progress and study activity are private to each signed-in learner. Supabase sends a one-time email sign-in link; progress is saved to rows protected by Supabase Row Level Security. Progress is also saved in this browser, so completing a lesson does not depend on signing in or on a temporary network connection; sign in to sync it across devices. The dashboard API calculates study time, daily streaks, completed lessons, practiced phrases, and weekly activity from Supabase records. Time is tracked while a guided lesson is open.
 
-The authenticated `GET /api/dashboard` endpoint returns current learner metrics. `POST /api/dashboard` accepts `{ "seconds": 60 }` to record active study time; both requests require the learner's Supabase access token.
+The authenticated `GET /api/progress` endpoint loads the current learner's progress, and `PUT /api/progress` accepts `{ "progress": { ... } }` to save it. `GET /api/dashboard` returns learner metrics, and `POST /api/dashboard` accepts `{ "seconds": 60 }` to record active study time. All endpoints require the learner's Supabase access token and enforce row-level security.
 
 1. Create a Supabase project and run both SQL files in [`supabase/migrations`](./supabase/migrations) in timestamp order in its SQL Editor.
 2. Copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` from your Supabase project's API settings.
