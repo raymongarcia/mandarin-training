@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import LessonPlayer from "./components/LessonPlayer";
 import CourseLessonPlayer from "./components/CourseLessonPlayer";
+import WordOfTheDay from "./components/WordOfTheDay";
 import AccountDialog from "./components/AccountDialog";
 import { courseLessons, courseUnits } from "./lib/courseLessons";
 import { useLearningProgress } from "./lib/useLearningProgress";
@@ -475,12 +476,7 @@ export default function Home() {
                 <div className="goal-footer"><span className="goal-avatar">你</span><span>You&apos;re building a great habit.</span><span className="goal-spark">✳</span></div>
               </section>
 
-              <section className="phrase-card">
-                <div className="phrase-label"><span>PHRASE TO TAKE WITH YOU</span><span>{dashboard?.phrasesPracticed ?? "—"} / 4 PRACTICED</span></div>
-                <p className="phrase-hanzi">你好</p>
-                <p className="phrase-pinyin">nǐ hǎo</p>
-                <div className="phrase-bottom"><span>hello · a friendly greeting</span><button aria-label="Save phrase" onClick={() => setNotice("Saved 你好 to your phrases.")}><Icon name="bookmark" size={17} /></button></div>
-              </section>
+              <WordOfTheDay />
             </aside>
           </section>
 

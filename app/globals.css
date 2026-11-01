@@ -204,6 +204,18 @@ h1 > span { color: var(--green); }
 .phrase-pinyin { color: #72816e; font-size: 10px; letter-spacing: .5px; margin: 0; }
 .phrase-bottom { align-items: center; border-top: 1px solid #dce1d7; color: #788273; display: flex; font-size: 8px; justify-content: space-between; margin-top: 10px; padding-top: 8px; }
 .phrase-bottom button { background: transparent; border: 0; color: #75846f; cursor: pointer; display: flex; padding: 2px; }
+.word-card { overflow: hidden; }
+.word-of-day-main { align-items: center; display: flex; justify-content: space-between; }
+.word-of-day-main .phrase-hanzi { margin-top: 13px; }
+.word-meaning { color: #56664f; font-size: 11px; font-weight: 600; margin: 7px 0 0; text-transform: capitalize; }
+.word-audio { background: #fffefa; border: 1px solid #dce1d7; border-radius: 5px; color: #526a50; cursor: pointer; font-size: 8px; font-weight: 600; padding: 8px 10px; }
+.word-audio:hover { background: #f7f8f3; border-color: #bac8b5; }
+.word-audio-playing { background: #dce8d9; }
+.word-example { border-top: 1px solid #dce1d7; display: flex; flex-direction: column; gap: 5px; margin-top: 12px; padding-top: 10px; }
+.word-example strong { color: #405940; font-family: "Noto Serif SC", serif; font-size: 14px; font-weight: 500; }
+.word-example > span { color: #72816e; font-size: 9px; }
+.word-example small { color: #788273; font-size: 8px; line-height: 1.5; }
+.word-audio-error { color: #8c6b50; font-size: 8px; line-height: 1.5; margin: 8px 0 0; }
 .page-footer { align-items: center; border-top: 1px solid #ecebe4; color: #9a9e95; display: flex; font-size: 8px; justify-content: space-between; letter-spacing: .9px; margin-top: 38px; padding-top: 15px; }
 .page-footer > span:last-child { font-size: 9px; letter-spacing: 0; }
 .footer-flower { color: #95a281; padding-left: 4px; }
