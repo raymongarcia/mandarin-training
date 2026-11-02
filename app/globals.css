@@ -350,6 +350,13 @@ h1 > span { color: var(--green); }
 .dialogue-speaker { color: #91978c; font-size: 7px; font-weight: 700; letter-spacing: 1px; }
 .dialogue-bubble > strong { color: #405940; font-family: "Noto Serif SC", serif; font-size: 17px; font-weight: 500; }
 .dialogue-bubble > small { color: #8e9389; font-size: 8px; }
+.voice-button { align-items: center; background: #f0f3ed; border: 1px solid #e8ebdf; border-radius: 999px; color: #5b6d5d; cursor: pointer; display: inline-flex; gap: 6px; justify-content: center; min-height: 28px; min-width: 80px; padding: 5px 10px; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+.voice-button:hover { background: #e9f0e6; border-color: #dbe6d5; }
+.voice-button:active { transform: translateY(1px); }
+.voice-button-playing { background: #e6efe4; border-color: #bfd1bd; color: #355f4b; }
+.voice-button-heard { background: #edf4ea; border-color: #d7e4d2; }
+.voice-icon { fill: currentColor; height: 12px; width: 12px; }
+.voice-icon-speaking { transform: scale(1.04); }
 .dialogue-audio { min-width: 73px; }
 .speaking-scene { background: #edf2eb; border-radius: 7px; margin: 19px 0 13px; padding: 13px 15px; }
 .speaking-scene > span:first-child, .lesson-finale > span { color: #758671; font-size: 8px; font-weight: 700; letter-spacing: 1px; }
