@@ -29,8 +29,8 @@ export default function CourseLessonPlayer({
 }) {
   const isKidsCourse = lesson.audience === "kids";
   const sectionTitles = isKidsCourse
-    ? ["Look & learn", "Say it together", "Pick the meaning"]
-    : ["Learn useful phrases", "Practice aloud", "Check your understanding"];
+    ? ["Memorize HSK words", "Say it together", "Pick the meaning"]
+    : ["Memorize HSK words", "Practice aloud", "Check your understanding"];
   const sectionDurations = isKidsCourse ? ["2 min", "3 min", "2 min"] : ["5 min", "5 min", "5 min"];
   const [activeSection, setActiveSection] = useState(Math.min(initialProgress?.sectionIndex ?? 0, 2));
   const [answers, setAnswers] = useState<(number | undefined)[]>(initialProgress?.answers.map((answer) => answer ?? undefined) ?? []);
@@ -209,8 +209,8 @@ export default function CourseLessonPlayer({
               {activeSection === 0 && (
                 <section aria-labelledby="course-lesson-title">
                   <h1 id="course-lesson-title">{lesson.title}</h1>
-                  <p className="stage-intro">{lesson.focus} {isKidsCourse ? "Look at each phrase, then say it together with a grown-up." : "Read each phrase, listen to the sounds in your head, then practice saying it aloud."}</p>
-                  <div className="dialogue-list">
+                  <p className="stage-intro">{lesson.focus} {isKidsCourse ? "Start with the HSK words below, then say them together with a grown-up." : "Memorize these HSK-aligned words first. Repeat the sound, meaning, and tone pattern before moving into conversation practice."}</p>
+                  <div className="dialogue-list" style={{ display: "grid", gap: "0.85rem" }}>
                     {lesson.phrases.map((phrase, index) => {
                       const audioId = `${phrase.hanzi}-${index}`;
                       const isPlaying = playingAudio === audioId;
@@ -219,10 +219,11 @@ export default function CourseLessonPlayer({
                       return (
                         <article className="dialogue-line" key={phrase.hanzi}>
                           <span className="dialogue-number">{String(index + 1).padStart(2, "0")}</span>
-                          <div className="dialogue-bubble">
-                            <span className="dialogue-speaker">{isKidsCourse ? "NEW WORD" : "KEY PHRASE"} {index + 1}</span>
+                          <div className="dialogue-bubble" style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                            <span className="dialogue-speaker">{isKidsCourse ? "HSK WORD" : "HSK MEMORY WORD"} {index + 1}</span>
                             <strong>{phrase.hanzi}</strong>
-                            <small>{phrase.pinyin} · {phrase.meaning}</small>
+                            <small>{phrase.pinyin}</small>
+                            <small>{phrase.meaning}</small>
                           </div>
                           <button
                             className={`voice-button ${isPlaying ? "voice-button-playing" : ""} ${isHeard ? "voice-button-heard" : ""}`}
@@ -238,7 +239,7 @@ export default function CourseLessonPlayer({
                     })}
                   </div>
                   <button className="text-practice-button" onClick={() => setTextPracticeSections((current) => current.includes(0) ? current : [...current, 0])}>
-                    {textPracticeSections.includes(0) ? (isKidsCourse ? "We said them together ✓" : "Phrases practiced ✓") : (isKidsCourse ? "We practiced these words" : "I practiced these phrases")} <span>→</span>
+                    {textPracticeSections.includes(0) ? (isKidsCourse ? "We memorized these HSK words ✓" : "Words memorized ✓") : (isKidsCourse ? "We memorized these HSK words" : "I memorized these HSK words")} <span>→</span>
                   </button>
                 </section>
               )}

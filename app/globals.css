@@ -304,6 +304,12 @@ h1 > span { color: var(--green); }
 .tone-contour path { fill: none; stroke: #668769; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.5; }
 .tone-contour path.pitch-guide { stroke: #e2e4da; stroke-width: 1; }
 .audio-provider-note { color: #969b91; font-size: 8px; margin: 8px 0 -12px; }
+.pronunciation-video { background: #fffefa; border: 1px solid #eeede6; border-radius: 7px; margin: 20px 0 16px; overflow: hidden; }
+.pronunciation-video-heading { align-items: center; display: flex; gap: 12px; justify-content: space-between; padding: 11px 13px; }
+.pronunciation-video-heading strong { color: #52674f; font-size: 9px; font-weight: 600; }
+.pronunciation-video-heading a { color: #557455; font-size: 8px; text-decoration: none; }
+.pronunciation-video-heading a:hover { text-decoration: underline; }
+.pronunciation-video iframe { aspect-ratio: 16 / 9; background: #f1f1ec; border: 0; display: block; width: 100%; }
 .tone-name { color: #92988e; font-size: 8px; font-weight: 700; letter-spacing: .75px; text-transform: uppercase; }
 .tone-word { align-items: baseline; display: flex; gap: 8px; margin: 5px 0; }
 .tone-word strong { color: #3e5942; font-family: "Noto Serif SC", serif; font-size: 22px; font-weight: 500; }

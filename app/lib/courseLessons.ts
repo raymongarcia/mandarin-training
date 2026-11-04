@@ -17,7 +17,11 @@ export type CourseLesson = {
 type LessonSeed = Omit<CourseLesson, "id" | "audience">;
 
 const lessonSeeds: LessonSeed[] = [
-  { unit: 1, number: 1, title: "Your first Mandarin sounds", focus: "Greetings, introductions, Pinyin and tones.", phrases: [] },
+  { unit: 1, number: 1, title: "HSK basics: hello & introductions", focus: "Follow the beginner HSK vocabulary list for polite greetings, naming yourself, and making a first impression.", phrases: [
+    { hanzi: "您好", pinyin: "nín hǎo", meaning: "Hello (polite)" },
+    { hanzi: "我叫…", pinyin: "wǒ jiào…", meaning: "My name is…" },
+    { hanzi: "很高兴认识您", pinyin: "hěn gāo xìng rèn shi nín", meaning: "Pleased to meet you" },
+  ] },
   { unit: 1, number: 2, title: "Meeting someone new", focus: "Greet a new colleague, introduce yourself and make a good first impression.", phrases: [
     { hanzi: "您好", pinyin: "nín hǎo", meaning: "Hello (polite)" },
     { hanzi: "我叫…", pinyin: "wǒ jiào…", meaning: "My name is…" },

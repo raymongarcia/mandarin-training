@@ -371,6 +371,34 @@ function LessonPlayer({
                   <h1 id="lesson-title">Start with Pinyin.<br /><span>Learn the sounds.</span></h1>
                   <p className="stage-intro">Chinese is written with characters rather than an alphabet. Hanyu Pinyin uses familiar Latin letters to show how to pronounce them. Start with initials (beginning sounds) and finals (vowel sounds). The English hints are approximate—listen to the Mandarin examples too.</p>
                   <p className="audio-provider-note">Pronunciation plays with a Mandarin voice when available, or online speech audio.</p>
+                  <div className="pronunciation-video" style={{ padding: "18px 18px 16px" }}>
+                    <div className="pronunciation-video-heading" style={{ padding: 0, marginBottom: 14 }}>
+                      <strong>Word visualization</strong>
+                      <span style={{ color: "#6f7d6d", fontSize: 8, letterSpacing: "1.2px", textTransform: "uppercase" }}>HSK tone map</span>
+                    </div>
+                    <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+                      {vocabulary.map((word, index) => (
+                        <div key={word.id} style={{ background: "#fffefa", border: "1px solid #eceae0", borderRadius: 12, padding: 12 }}>
+                          <div style={{ alignItems: "center", display: "flex", gap: 8, marginBottom: 8 }}>
+                            <span style={{ background: "#edf2eb", borderRadius: "999px", color: "#355f4b", display: "inline-flex", fontSize: 10, fontWeight: 700, height: 22, justifyContent: "center", minWidth: 22, padding: "0 8px" }}>{index + 1}</span>
+                            <span style={{ color: "#748179", fontSize: 9, letterSpacing: "1.1px", textTransform: "uppercase" }}>Word</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+                            <span style={{ color: "#2b3931", fontFamily: '"Noto Serif SC", serif', fontSize: 28, lineHeight: 1 }}>{word.hanzi}</span>
+                            <span style={{ color: "#6d7c70", fontSize: 11, letterSpacing: ".6px" }}>{word.syllables.map((syllable) => syllable.pinyin).join(" · ")}</span>
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {word.syllables.map((syllable, syllableIndex) => (
+                              <span key={`${word.id}-${syllable.character}-${syllableIndex}`} style={{ background: syllableIndex % 2 === 0 ? "#e8efe4" : "#f5eddc", borderRadius: 8, color: "#36573e", fontSize: 11, fontWeight: 600, padding: "5px 8px" }}>
+                                {syllable.character}
+                              </span>
+                            ))}
+                          </div>
+                          <small style={{ color: "#7c847c", display: "block", marginTop: 10 }}>{word.meaning}</small>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   <div className="pinyin-heading"><strong>Initials</strong><span>Starting sounds</span></div>
                   <div className="pinyin-progress"><span>{pinyinGroups.filter((group) => playedAudio.includes(group.id)).length} of {pinyinGroups.length} Pinyin groups heard</span></div>
                   <div className="pinyin-grid">

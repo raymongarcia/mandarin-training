@@ -15,7 +15,7 @@ The 46-lesson course covers introductions, everyday work talk, meetings, client 
 
 ## Enable progress sync
 
-Progress and study activity are private to each signed-in learner. Supabase sends a one-time email sign-in link; progress is saved to rows protected by Supabase Row Level Security. Progress is also saved in this browser, so completing a lesson does not depend on signing in or on a temporary network connection; sign in to sync it across devices. The dashboard API calculates study time, daily streaks, completed lessons, practiced phrases, and weekly activity from Supabase records. Time is tracked while a guided lesson is open.
+Progress and study activity are private to each signed-in learner. Supabase sends a one-time email sign-in link; progress is saved to rows protected by Supabase Row Level Security. Progress is also saved in this browser, so completing a lesson does not depend on signing in or on a temporary network connection; sign in to sync it across devices. The dashboard API calculates study time, daily streaks, completed lessons, practiced phrases, and weekly activity from Supabase records. When signed out, daily streaks are saved in the current browser and do not sync across devices. Time is tracked while a guided lesson is open.
 
 The authenticated `GET /api/progress` endpoint loads the current learner's progress, and `PUT /api/progress` accepts `{ "progress": { ... } }` to save it. `GET /api/dashboard` returns learner metrics, and `POST /api/dashboard` accepts `{ "seconds": 60 }` to record active study time. All endpoints require the learner's Supabase access token and enforce row-level security.
 

@@ -17,6 +17,43 @@ import { useLearningProgress } from "./lib/useLearningProgress";
 
 const FIRST_LESSON_ID = "unit-01-lesson-01";
 const LEARNER_PATH_STORAGE_KEY = "mandarin-training:learner-path";
+const LOCAL_ACTIVITY_DATES_KEY = "mandarin-training:activity-dates";
+
+function getActivityDates() {
+  try {
+    const stored = window.localStorage.getItem(LOCAL_ACTIVITY_DATES_KEY);
+    if (!stored) return [];
+
+    const parsed: unknown = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.every((date) => typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date))) {
+      return [...new Set(parsed)].sort().slice(-366);
+    }
+
+    console.error("The saved local study activity has an unexpected format.");
+  } catch (error) {
+    console.error("Could not read local study activity.", error);
+  }
+  return [];
+}
+
+function calculateLocalStreak(activityDates: string[], today: Date) {
+  const activeDates = new Set(activityDates);
+  const todayString = today.toISOString().slice(0, 10);
+  const yesterday = new Date(today);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  let cursor = activeDates.has(todayString)
+    ? today
+    : activeDates.has(yesterday.toISOString().slice(0, 10)) ? yesterday : null;
+  let streak = 0;
+
+  while (cursor && activeDates.has(cursor.toISOString().slice(0, 10))) {
+    streak += 1;
+    cursor = new Date(cursor);
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+
+  return streak;
+}
 
 type IconName =
   | "grid"
@@ -134,6 +171,7 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [dashboard, setDashboard] = useState<DashboardSummary | null>(null);
   const [dashboardError, setDashboardError] = useState("");
+  const [localStreakDays, setLocalStreakDays] = useState(0);
   const [todayLabel, setTodayLabel] = useState("");
   const [selectedPath, setSelectedPath] = useState<LearnerPath>("casual");
   const activityQueue = useRef(Promise.resolve());
@@ -148,6 +186,10 @@ export default function Home() {
     && (progress.lessonPath ?? "business") === selectedPath
     ? progress.lesson
     : null;
+  const currentStreakDays = user ? dashboard?.currentStreakDays : localStreakDays;
+  const streakNote = user
+    ? dashboard ? dashboard.currentStreakDays ? "Keep it going" : "Study today to start" : "Loading your streak…"
+    : localStreakDays ? "Saved on this device" : "Study today to start";
 
   useEffect(() => {
     let savedPath: string | null = null;
@@ -207,6 +249,7 @@ export default function Home() {
 
   useEffect(() => {
     setTodayLabel(new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric" }).format(new Date()));
+    setLocalStreakDays(calculateLocalStreak(getActivityDates(), new Date()));
   }, []);
 
   useEffect(() => {
@@ -222,7 +265,17 @@ export default function Home() {
   const recordStudySeconds = useCallback((seconds: number) => {
     activityQueue.current = activityQueue.current.then(async () => {
       if (!client || !user) {
-        setDashboardError("Sign in to save study time to your dashboard.");
+        const activityDates = getActivityDates();
+        const today = new Date();
+        const todayString = today.toISOString().slice(0, 10);
+        const updatedDates = [...new Set([...activityDates, todayString])].sort().slice(-366);
+        try {
+          window.localStorage.setItem(LOCAL_ACTIVITY_DATES_KEY, JSON.stringify(updatedDates));
+          setLocalStreakDays(calculateLocalStreak(updatedDates, today));
+        } catch (error) {
+          console.error("Could not save local study activity.", error);
+          setNotice("Your study streak could not be saved on this device.");
+        }
         return;
       }
       const { data, error } = await client.auth.getSession();
@@ -454,8 +507,8 @@ export default function Home() {
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-fire">✳</span>
-              <div><span className="stat-label">DAY STREAK</span><strong>{dashboard ? dashboard.currentStreakDays : "—"} <small>days</small></strong></div>
-              <span className="stat-note">{dashboard ? dashboard.currentStreakDays ? "Keep it going" : "Study today to start" : "Sign in to track activity"}</span>
+              <div><span className="stat-label">DAY STREAK</span><strong>{currentStreakDays ?? "—"} <small>days</small></strong></div>
+              <span className="stat-note">{streakNote}</span>
             </article>
             <article className="stat-card">
               <span className="stat-icon stat-learn"><Icon name="book" size={18} /></span>
